@@ -1,0 +1,3724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>D-6 — Narcotics Bureau · Phone Log Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f1218;
+  --surface: #161b23;
+  --surface-2: #1c222c;
+  --border: #2a3140;
+  --border-strong: #3a4456;
+  --text: #d6cfbb;
+  --text-muted: #7c8392;
+  --text-dim: #525866;
+  --amber: #e8a01c;
+  --amber-dim: #8a5f12;
+  --red: #d05448;
+  --red-dim: #5a2a23;
+  --green: #6b9a5a;
+  --blue: #5b8ab5;
+  --purple: #a07dc4;
+  --purple-dim: #4a3760;
+  --cyan: #5fb3a3;
+  --cyan-dim: #2d544c;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  min-height: 100vh;
+}
+::selection { background: var(--amber); color: var(--bg); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+.mono { font-family: 'IBM Plex Mono', monospace; }
+.serif { font-family: 'IBM Plex Serif', serif; }
+.muted { color: var(--text-muted); }
+.dim { color: var(--text-dim); }
+.amber { color: var(--amber); }
+.red { color: var(--red); }
+.green { color: var(--green); }
+
+header.app-head {
+  border-bottom: 1px solid var(--border);
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+}
+header.app-head .brand {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+}
+header.app-head h1 {
+  font-family: 'IBM Plex Serif', serif;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+header.app-head .classification {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  color: var(--amber);
+  border: 1px solid var(--amber-dim);
+  padding: 3px 8px;
+  text-transform: uppercase;
+}
+header.app-head .session-info {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+nav.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  padding: 0 28px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+nav.tabs button {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  padding: 14px 18px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+nav.tabs button:hover { color: var(--text); }
+nav.tabs button.active {
+  color: var(--amber);
+  border-bottom-color: var(--amber);
+}
+nav.tabs button:disabled {
+  color: var(--text-dim);
+  cursor: not-allowed;
+}
+
+main {
+  padding: 28px;
+  max-width: 1500px;
+  margin: 0 auto;
+}
+
+.panel { display: none; }
+.panel.active { display: block; animation: fadein 0.2s ease; }
+@keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 20px 24px;
+  margin-bottom: 18px;
+}
+.card h2 {
+  font-family: 'IBM Plex Serif', serif;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.card h2::before {
+  content: "";
+  width: 6px;
+  height: 14px;
+  background: var(--amber);
+  display: inline-block;
+}
+
+/* === LOAD SCREEN === */
+.load-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+}
+.load-screen h2 {
+  font-family: 'IBM Plex Serif', serif;
+  font-size: 26px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.load-screen h2::before { display: none; }
+.load-screen .sub {
+  color: var(--text-muted);
+  margin-bottom: 32px;
+  max-width: 520px;
+}
+.drop-zone {
+  border: 2px dashed var(--border-strong);
+  padding: 50px 70px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--surface);
+}
+.drop-zone:hover, .drop-zone.dragging {
+  border-color: var(--amber);
+  background: var(--surface-2);
+}
+.drop-zone .icon {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 32px;
+  color: var(--amber);
+  margin-bottom: 12px;
+}
+.drop-zone p {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.format-help {
+  margin-top: 32px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 16px 20px;
+  max-width: 640px;
+  white-space: pre;
+  overflow-x: auto;
+}
+.format-help .label {
+  color: var(--amber);
+  font-size: 10px;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+/* === STATS GRID === */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 16px 18px;
+}
+.stat .label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.stat .value {
+  font-family: 'IBM Plex Serif', serif;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text);
+}
+.stat .value.amber { color: var(--amber); }
+.stat .value.red { color: var(--red); }
+.stat .value.purple { color: var(--purple); }
+.stat .value.cyan { color: var(--cyan); }
+
+/* === TABLES === */
+table.intel {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+}
+table.intel thead th {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  user-select: none;
+}
+table.intel thead th:hover { color: var(--amber); }
+table.intel thead th.sort-asc::after { content: " ▲"; color: var(--amber); }
+table.intel thead th.sort-desc::after { content: " ▼"; color: var(--amber); }
+table.intel tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+  cursor: pointer;
+}
+table.intel tbody tr:hover { background: var(--surface-2); }
+table.intel td {
+  padding: 10px 12px;
+  vertical-align: top;
+}
+table.intel td.num { text-align: right; }
+table.intel .tier-1 { color: var(--red); font-weight: 600; }
+table.intel .tier-2 { color: var(--amber); }
+table.intel .tier-3 { color: var(--green); }
+table.intel .score-bar {
+  display: inline-block;
+  height: 8px;
+  background: var(--amber);
+  margin-left: 6px;
+  vertical-align: middle;
+  min-width: 1px;
+  max-width: 80px;
+}
+
+.btn {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  padding: 8px 16px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn:hover { background: var(--border-strong); border-color: var(--amber); color: var(--amber); }
+.btn.primary {
+  background: var(--amber);
+  color: var(--bg);
+  border-color: var(--amber);
+}
+.btn.primary:hover { background: #f3b53a; color: var(--bg); }
+.btn.small { padding: 4px 10px; font-size: 10px; }
+
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.actions input[type="text"], .actions select {
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  padding: 7px 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  min-width: 220px;
+}
+.actions input[type="text"]:focus, .actions select:focus {
+  outline: none;
+  border-color: var(--amber);
+}
+
+/* === CONTACT DETAIL === */
+.contact-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+.contact-header .num-display {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 32px;
+  font-weight: 500;
+  color: var(--amber);
+  letter-spacing: 1px;
+}
+.contact-header .subtitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-top: 4px;
+}
+.contact-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 1000px) { .contact-grid { grid-template-columns: 1fr; } }
+
+.evidence-list { max-height: 70vh; overflow-y: auto; }
+.evidence-item {
+  display: grid;
+  grid-template-columns: 130px 24px 1fr auto;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+  align-items: start;
+}
+.evidence-item:hover { background: var(--surface-2); }
+.evidence-item .ts { color: var(--text-muted); font-size: 11px; white-space: nowrap; }
+.evidence-item .dir { color: var(--text-dim); font-size: 16px; }
+.evidence-item .dir.out { color: var(--blue); }
+.evidence-item .dir.in { color: var(--green); }
+.evidence-item .body { word-break: break-word; }
+.evidence-item .tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.tag {
+  font-size: 9px;
+  padding: 2px 5px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-family: 'IBM Plex Mono', monospace;
+  border: 1px solid;
+}
+.tag.drug { color: var(--amber); border-color: var(--amber-dim); }
+.tag.gun { color: var(--red); border-color: var(--red-dim); }
+.tag.cs { color: var(--purple); border-color: var(--purple-dim); }
+.tag.rob { color: var(--cyan); border-color: var(--cyan-dim); }
+.tag.loc { color: var(--blue); border-color: var(--blue); border-color: #2c4a66; }
+.tag.money { color: var(--green); border-color: #3a5a30; }
+.tag.call { color: var(--text-muted); border-color: var(--border-strong); }
+
+.evidence-item .body mark {
+  background: var(--amber-dim);
+  color: var(--amber);
+  padding: 0 2px;
+  font-weight: 500;
+}
+.evidence-item .body mark.gun { background: var(--red-dim); color: var(--red); }
+.evidence-item .body mark.cs  { background: var(--purple-dim); color: var(--purple); }
+.evidence-item .body mark.rob { background: var(--cyan-dim); color: var(--cyan); }
+.evidence-item .body mark.loc { background: #1d3148; color: #7fb1d6; }
+
+.side-panel { display: flex; flex-direction: column; gap: 16px; }
+.side-panel .sub-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: 14px 16px;
+}
+.side-panel .sub-card h3 {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+.side-panel .kv { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+.side-panel .kv div { display: flex; justify-content: space-between; padding: 3px 0; }
+.side-panel .kv .k { color: var(--text-muted); }
+.side-panel .kv .v { color: var(--text); }
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* === LOCATIONS === */
+.loc-list { display: flex; flex-direction: column; gap: 6px; }
+.loc-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto 200px;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-family: 'IBM Plex Mono', monospace;
+}
+.loc-item .name { font-size: 14px; color: var(--text); }
+.loc-item .count { color: var(--amber); font-weight: 600; }
+.loc-item .contacts { color: var(--text-muted); font-size: 11px; text-align: right; }
+.loc-item .bar-wrap { background: var(--surface-2); height: 8px; position: relative; }
+.loc-item .bar { background: var(--amber); height: 100%; }
+.loc-item.hub-primary .bar { background: var(--red); }
+.loc-item.hub-primary .count { color: var(--red); }
+
+/* === GLOSSARY === */
+.glossary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 1100px) { .glossary-grid { grid-template-columns: 1fr; } }
+.kw-list {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: 14px 16px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+}
+.kw-list h3 {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--amber);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+.kw-list ul { list-style: none; columns: 2; column-gap: 16px; }
+.kw-list li { padding: 2px 0; color: var(--text); break-inside: avoid; }
+.kw-list .add-row { display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.kw-list input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 12px;
+}
+.kw-list input:focus { outline: none; border-color: var(--amber); }
+.kw-list li .remove {
+  font-size: 10px;
+  color: var(--text-dim);
+  cursor: pointer;
+  margin-left: 6px;
+}
+.kw-list li .remove:hover { color: var(--red); }
+
+/* === MEMO === */
+.memo-output {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 24px 30px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+/* === MISC === */
+.notice {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--amber);
+  background: rgba(232, 160, 28, 0.07);
+  border-left: 3px solid var(--amber);
+  padding: 8px 14px;
+  margin-bottom: 14px;
+}
+.error {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--red);
+  background: rgba(208, 84, 72, 0.08);
+  border: 1px solid var(--red-dim);
+  padding: 12px 16px;
+  margin-bottom: 14px;
+}
+hr.div { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+hr.load-divider { border: none; border-top: 1px solid var(--border); margin: 34px 0 26px; }
+.convert-heading { margin-bottom: 6px; }
+.drop-zone.alt { border-color: var(--border); }
+.drop-zone.alt:hover, .drop-zone.alt.dragging { border-color: var(--green); background: var(--surface-2); }
+.drop-zone.alt .icon { color: var(--green); }
+.convert-info {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--green);
+  background: rgba(107, 154, 90, 0.08);
+  border: 1px solid var(--green);
+  padding: 12px 16px;
+  margin-top: 14px;
+}
+.convert-info .ci-title { color: var(--green); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 6px; }
+.convert-info ul { margin: 4px 0 0 18px; padding: 0; }
+.convert-info li { color: var(--text-dim); margin: 2px 0; }
+.convert-info code { color: var(--amber); }
+.search-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.search-controls #search-q { flex: 1 1 260px; min-width: 200px; }
+.search-controls .chk { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; }
+.search-controls .date-range { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 6px; }
+.search-controls input[type="date"] { font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+.search-row .subj { color: var(--amber); font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase; }
+.search-row .who { color: var(--text-dim); font-family: 'IBM Plex Mono', monospace; font-size: 11px; cursor: pointer; }
+.search-row .who:hover { color: var(--amber); text-decoration: underline; }
+.session-actions { display: flex; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+.session-actions label.btn { display: inline-flex; align-items: center; cursor: pointer; }
+#session-msg { margin-top: 12px; }
+#session-msg .convert-info { display: inline-block; }
+
+.tier-badge {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  padding: 2px 6px;
+  letter-spacing: 1.2px;
+  border: 1px solid;
+  margin-left: 6px;
+}
+.tier-badge.t1 { color: var(--red); border-color: var(--red-dim); }
+.tier-badge.t2 { color: var(--amber); border-color: var(--amber-dim); }
+.tier-badge.t3 { color: var(--green); border-color: #3a5a30; }
+
+/* === EXCLUSION LIST === */
+.excluded-row {
+  display: grid;
+  grid-template-columns: 140px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  margin-bottom: 4px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+}
+.excluded-row.not-in-data { opacity: 0.45; }
+.excluded-row .num { color: var(--amber); font-weight: 500; }
+.excluded-row .stats { color: var(--text-muted); font-size: 11px; }
+.excluded-row .stats.missing { color: var(--text-dim); font-style: italic; }
+.excluded-row .remove-x {
+  background: none; border: 1px solid transparent; color: var(--text-dim);
+  font-family: inherit; font-size: 14px; cursor: pointer; padding: 2px 9px;
+}
+.excluded-row .remove-x:hover { color: var(--red); border-color: var(--red-dim); }
+
+table.intel tbody tr.is-excluded {
+  opacity: 0.4;
+  background: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.015) 8px, rgba(255,255,255,0.015) 9px);
+}
+table.intel tbody tr.is-excluded td:first-child::after {
+  content: " ESW";
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 1.5px;
+  margin-left: 6px;
+  border: 1px solid var(--border-strong);
+  padding: 1px 4px;
+}
+
+.excluded-banner {
+  background: rgba(232, 160, 28, 0.07);
+  border-left: 3px solid var(--amber);
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--amber);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#excluded-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+#excluded-input:focus { outline: none; border-color: var(--amber); }
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+.toggle-row input[type="checkbox"] { accent-color: var(--amber); cursor: pointer; }
+
+.subhead {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--amber);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin: 18px 0 8px 0;
+}
+
+header.app-head .badge {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  flex-shrink: 0;
+  background: #000;
+}
+header.app-head .brand-text { display: flex; flex-direction: column; }
+header.app-head .subline {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+#subject-picker {
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  color: var(--amber);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  padding: 6px 10px;
+  min-width: 280px;
+  cursor: pointer;
+}
+#subject-picker:focus { outline: none; border-color: var(--amber); }
+
+.subject-row {
+  display: grid;
+  grid-template-columns: 30px 1fr auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  margin-bottom: 6px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.subject-row.is-active {
+  border-color: var(--amber);
+  background: rgba(232, 160, 28, 0.04);
+}
+.subject-row .marker { color: var(--text-muted); font-size: 14px; text-align: center; }
+.subject-row.is-active .marker { color: var(--amber); }
+.subject-row .info .target { color: var(--amber); font-size: 14px; }
+.subject-row .info .meta { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+.subject-row .label-input {
+  background: var(--bg);
+  border: 1px solid transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 3px 6px;
+  width: 220px;
+}
+.subject-row .label-input:hover { border-color: var(--border); }
+.subject-row .label-input:focus { outline: none; border-color: var(--amber); }
+
+.direct-row {
+  display: grid;
+  grid-template-columns: 1fr 24px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  margin-bottom: 6px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+}
+.direct-row .arrow {
+  text-align: center;
+  color: var(--amber);
+  font-size: 18px;
+}
+.direct-row .endpoint { color: var(--text); }
+.direct-row .endpoint .label { color: var(--amber); }
+.direct-row .endpoint .stats { color: var(--text-muted); font-size: 11px; }
+
+.mutual-breakdown {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 10.5px;
+}
+.mutual-breakdown .chip {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  font-family: 'IBM Plex Mono', monospace;
+  white-space: nowrap;
+}
+.mutual-breakdown .chip .lbl { color: var(--amber); }
+.mutual-breakdown .chip .num { color: var(--text-muted); margin-left: 5px; }
+
+/* === BUGS === */
+.bug-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  margin-bottom: 6px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.bug-row.is-active { border-color: var(--amber); background: rgba(232,160,28,0.04); }
+.bug-row .name { color: var(--amber); font-size: 14px; }
+.bug-row .meta { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+.bug-row .sigs { font-size: 11px; display: flex; gap: 10px; }
+.bug-row .sigs .s-drug { color: var(--amber); }
+.bug-row .sigs .s-gun  { color: var(--red); }
+.bug-row .sigs .s-cs   { color: var(--purple); }
+.bug-row .sigs .s-rob  { color: var(--cyan); }
+.property-row {
+  background: rgba(232,160,28,0.06);
+  border-color: var(--amber-dim);
+}
+.property-row .name::before { content: "▣ "; }
+.bug-transcript {
+  max-height: 70vh; overflow-y: auto;
+}
+.bug-line {
+  display: grid;
+  grid-template-columns: 130px 1fr auto;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+  align-items: start;
+}
+.bug-line:hover { background: var(--surface-2); }
+.bug-line .ts { color: var(--text-muted); font-size: 11px; white-space: nowrap; }
+.bug-line .body { word-break: break-word; }
+.bug-line .body .xlated { color: var(--blue); font-size: 10px; letter-spacing: 1px; margin-right: 6px; }
+.bug-line .body mark { background: var(--amber-dim); color: var(--amber); padding: 0 2px; font-weight: 500; }
+.bug-line .body mark.gun { background: var(--red-dim); color: var(--red); }
+.bug-line .body mark.cs  { background: var(--purple-dim); color: var(--purple); }
+.bug-line .body mark.rob { background: var(--cyan-dim); color: var(--cyan); }
+.bug-line .tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.mention-cloud { display: flex; flex-wrap: wrap; gap: 6px; }
+.mention-cloud .m {
+  background: var(--surface-2); border: 1px solid var(--border);
+  padding: 4px 9px; font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+}
+.mention-cloud .m .c { color: var(--text-muted); margin-left: 6px; font-size: 10px; }
+.mention-cloud .m.name .t { color: var(--amber); }
+.mention-cloud .m.loc .t { color: var(--blue); }
+</style>
+</head>
+<body>
+
+<header class="app-head">
+  <div class="brand">
+    <img src="data:image/jpeg;base64,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" class="badge" alt="LSSD D-6 Narcotics Bureau badge">
+    <div class="brand-text">
+      <h1>D-6 &mdash; Narcotics Bureau</h1>
+      <div class="subline">Los Santos County Sheriff's Department &middot; Phone Log Analyzer</div>
+    </div>
+    <span class="classification">Operational Use</span>
+  </div>
+  <div style="display:flex; align-items:center; gap:18px;">
+    <div id="subject-picker-wrap" style="display:none; text-align:right;">
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--text-muted); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:4px;">Active subject</div>
+      <select id="subject-picker"></select>
+    </div>
+    <div class="session-info" id="session-info">
+      No file loaded
+    </div>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="load" class="active">Load</button>
+  <button data-tab="network" disabled>Network</button>
+  <button data-tab="overview" disabled>Overview</button>
+  <button data-tab="search" disabled>Search</button>
+  <button data-tab="roster" disabled>Roster</button>
+  <button data-tab="contact" disabled>Contact Detail</button>
+  <button data-tab="locations" disabled>Locations</button>
+  <button data-tab="bugs" disabled>Bugs</button>
+  <button data-tab="glossary" disabled>Glossary</button>
+  <button data-tab="excluded" disabled>ESW List</button>
+  <button data-tab="memo" disabled>Memo</button>
+</nav>
+
+<main>
+
+  <!-- LOAD PANEL -->
+  <section class="panel active" data-panel="load">
+    <div class="load-screen">
+      <h2>Load a phone log CSV</h2>
+      <p class="sub">Drop a CDR/SMS export below. Everything runs locally in your browser — no upload, no network, no storage. Refreshing the page clears all data.</p>
+      <label class="drop-zone" id="drop-zone">
+        <div class="icon">[ + ]</div>
+        <p>Drop one or more CSVs &nbsp;·&nbsp; click to browse</p>
+        <input type="file" id="file-input" accept=".csv,.txt" multiple style="display:none;">
+      </label>
+      <div class="format-help">
+<div class="label">Expected format</div>
+"Phone Number: 25717785"
+"Export Date: 20/May/2026 03:21:01"
+
+"=== MESSAGES ==="
+Sender Number,Target Number,Message,Timestamp
+"25717785","78202573","sup","28/Apr/2026 00:35:09"
+...
+
+"=== CALLS ==="
+Sender Number,Target Number,Call Info,Timestamp
+"25717785","4246767","Sup foo? ...","30/Apr/2026 00:45:42"
+...
+      </div>
+      <div id="load-error"></div>
+
+      <hr class="load-divider">
+
+      <h2 class="convert-heading">Non-standard / legacy CSV</h2>
+      <p class="sub">Got a CSV the analyzer rejects (e.g. <code>Could not find 'Bug ID:' line in file</code>)? Drop it here. It's auto-detected, converted into the expected format, and then run through the same analyzer. Already-standard files pass straight through untouched.</p>
+      <label class="drop-zone alt" id="drop-zone-convert">
+        <div class="icon">[ ⇄ ]</div>
+        <p>Drop a non-standard CSV to auto-convert &nbsp;·&nbsp; click to browse</p>
+        <input type="file" id="file-input-convert" accept=".csv,.txt" multiple style="display:none;">
+      </label>
+      <div id="convert-info"></div>
+
+      <hr class="load-divider">
+
+      <h2 class="convert-heading">Session</h2>
+      <p class="sub">Save everything currently loaded — subjects, bugs, labels, detection vocabulary, and exclusions — to a local JSON file you can re-open later or hand to a colleague. Nothing is uploaded or auto-stored. Importing restores it (and merges with anything already loaded).</p>
+      <div class="session-actions">
+        <button class="btn" id="export-session">⭳ Export session</button>
+        <label class="btn" id="import-session-btn">⭱ Import session<input type="file" id="import-session" accept=".json,application/json" style="display:none;"></label>
+      </div>
+      <div id="session-msg"></div>
+    </div>
+  </section>
+
+  <!-- NETWORK PANEL -->
+  <section class="panel" data-panel="network">
+    <div class="card">
+      <h2>Loaded subjects</h2>
+      <p class="muted" style="font-size:12.5px; margin-bottom:14px;">Each loaded ESW. Click "Set active" to make a subject the working view for Roster / Contact Detail / Locations / Memo. Edit the label to use a name instead of a number throughout the tool.</p>
+      <div id="subject-list"></div>
+      <div style="margin-top:14px;">
+        <button class="btn" id="add-more-files">+ Load another CSV</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Direct connections between subjects</h2>
+      <p class="muted" style="font-size:12.5px; margin-bottom:14px;">Pairs of loaded subjects whose numbers appear in each other's logs — they are talking directly. Strongest evidence of conspiracy.</p>
+      <div id="direct-list"></div>
+    </div>
+
+    <div class="card">
+      <h2>Mutual contacts &mdash; network bridges</h2>
+      <p class="muted" style="font-size:12.5px; margin-bottom:14px;">Contacts that appear in 2+ subjects' logs. These are the highest-value next-warrant candidates because surveilling them gives you visibility into multiple existing subjects' networks at once. Already-loaded subjects are excluded from this list.</p>
+      <div class="actions">
+        <input type="text" id="mutual-search" placeholder="Filter by number…">
+      </div>
+      <table class="intel" id="mutual-tbl">
+        <thead><tr>
+          <th>Number</th>
+          <th class="num" title="# of loaded subjects this contact appears in">In #</th>
+          <th class="num">Drug</th>
+          <th class="num">Gun</th>
+          <th class="num">CS</th>
+          <th class="num">Rob</th>
+          <th class="num">Combined score</th>
+          <th>Per-subject breakdown</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- OVERVIEW PANEL -->
+  <section class="panel" data-panel="overview">
+    <div class="stats-grid" id="stats-grid"></div>
+    <div class="card">
+      <h2>Top signal — narcotics</h2>
+      <table class="intel" id="top-drug-tbl">
+        <thead><tr><th>Number</th><th class="num">Drug hits</th><th class="num">Explicit</th><th class="num">$ refs</th><th class="num">Locs</th><th class="num">Score</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2>Top signal — violence / firearms</h2>
+      <table class="intel" id="top-gun-tbl">
+        <thead><tr><th>Number</th><th class="num">Gun hits</th><th class="num">Explicit</th><th class="num">Contacts</th><th>Sample</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2>Top signal — counter-surveillance / LE-aware</h2>
+      <table class="intel" id="top-cs-tbl">
+        <thead><tr><th>Number</th><th class="num">CS hits</th><th>Sample</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2>Top signal — robbery / lick planning</h2>
+      <table class="intel" id="top-rob-tbl">
+        <thead><tr><th>Number</th><th class="num">Rob hits</th><th>Sample</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2>Multi-category contacts</h2>
+      <p class="muted" style="font-size:12px; margin-bottom:10px;">Numbers that hit 3+ categories — strongest overall targets.</p>
+      <table class="intel" id="top-multi-tbl">
+        <thead><tr><th>Number</th><th class="num">Drug</th><th class="num">Gun</th><th class="num">CS</th><th class="num">Rob</th><th class="num">Score</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2>Quick filters</h2>
+      <div class="actions">
+        <button class="btn" data-jump-tab="roster">View full roster →</button>
+        <button class="btn" data-jump-tab="locations">View location hubs →</button>
+        <button class="btn primary" data-jump-tab="memo">Generate memo →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SEARCH PANEL -->
+  <section class="panel" data-panel="search">
+    <div class="card">
+      <h2>Search all messages</h2>
+      <p class="muted" style="font-size:12.5px; margin-bottom:14px;">Full-text search across every loaded subject's messages and calls, with an optional date range. Click any result to open that contact's detail view.</p>
+      <div class="search-controls">
+        <input type="text" id="search-q" placeholder="Search text — e.g. trap, glock, a number…">
+        <label class="chk" title="Treat the query as a regular expression"><input type="checkbox" id="search-regex"> regex</label>
+        <label class="chk"><input type="checkbox" id="search-msgs" checked> messages</label>
+        <label class="chk"><input type="checkbox" id="search-calls" checked> calls</label>
+        <span class="date-range">from <input type="date" id="search-from"> to <input type="date" id="search-to"></span>
+        <button class="btn small" id="search-clear">Clear</button>
+      </div>
+      <div id="search-summary" class="muted" style="font-size:12px; margin:10px 0;"></div>
+      <div id="search-results" class="evidence-list"></div>
+    </div>
+  </section>
+
+  <!-- ROSTER PANEL -->
+  <section class="panel" data-panel="roster">
+    <div class="card">
+      <h2>Full contact roster</h2>
+      <div class="actions">
+        <input type="text" id="roster-search" placeholder="Filter by number…">
+      </div>
+      <table class="intel" id="roster-tbl">
+        <thead><tr>
+          <th data-sort="number">Number</th>
+          <th class="num" data-sort="msgs">SMS</th>
+          <th class="num" data-sort="calls">Calls</th>
+          <th class="num" data-sort="drug" title="Narcotics / dealing hits">Drug</th>
+          <th class="num" data-sort="gun" title="Firearms / violence hits">Gun</th>
+          <th class="num" data-sort="cs" title="Counter-surveillance / LE-aware">CS</th>
+          <th class="num" data-sort="rob" title="Robbery / lick planning">Rob</th>
+          <th class="num" data-sort="money">$ refs</th>
+          <th class="num" data-sort="locs">Locs</th>
+          <th class="num" data-sort="score">Score</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- CONTACT DETAIL PANEL -->
+  <section class="panel" data-panel="contact">
+    <div id="contact-content"><div class="empty-state">Select a number from the roster.</div></div>
+  </section>
+
+  <!-- LOCATIONS PANEL -->
+  <section class="panel" data-panel="locations">
+    <div class="card">
+      <h2>Recurring locations</h2>
+      <p class="muted" style="margin-bottom:14px; font-size:12.5px;">Ranked by number of distinct contacts that pinned the location. Top results are likely operational hubs or stash houses.</p>
+      <div class="loc-list" id="loc-list"></div>
+    </div>
+    <div class="card">
+      <h2>Named stash references in messages</h2>
+      <div id="trap-refs"></div>
+    </div>
+  </section>
+
+  <!-- BUGS PANEL -->
+  <section class="panel" data-panel="bugs">
+    <div class="card">
+      <h2>Bugged-property audio devices</h2>
+      <p class="muted" style="font-size:12.5px; margin-bottom:14px;">Wired audio transcripts. Each device is a separate bug; devices sharing a property name are grouped. Same drug / gun / counter-surveillance / robbery vocabulary is applied to every utterance.</p>
+      <div id="bug-list"></div>
+      <div style="margin-top:14px;">
+        <button class="btn" id="add-more-bug-files">+ Load another CSV</button>
+      </div>
+    </div>
+
+    <div id="bug-detail-wrap">
+      <div class="empty-state">Select a device or merged property above.</div>
+    </div>
+  </section>
+
+  <!-- GLOSSARY PANEL -->
+  <section class="panel" data-panel="glossary">
+    <div class="card">
+      <h2>Detection vocabulary</h2>
+      <p class="muted" style="margin-bottom: 14px; font-size: 12.5px;">Edit to retune what gets flagged — changes re-score everything immediately. Hover any term to see its underlying regex. Type a plain word (e.g. <span class="mono">fentanyl</span>) to add it; regex patterns are also accepted.</p>
+      <div class="glossary-grid">
+        <div class="kw-list">
+          <h3 style="color:var(--amber);">Drug / dealing terms</h3>
+          <ul id="drug-kw"></ul>
+          <div class="add-row">
+            <input type="text" id="add-drug" placeholder="word or regex pattern">
+            <button class="btn small" id="add-drug-btn">Add</button>
+          </div>
+        </div>
+        <div class="kw-list">
+          <h3 style="color:var(--red);">Violence / firearm terms</h3>
+          <ul id="gun-kw"></ul>
+          <div class="add-row">
+            <input type="text" id="add-gun" placeholder="word or regex pattern">
+            <button class="btn small" id="add-gun-btn">Add</button>
+          </div>
+        </div>
+        <div class="kw-list">
+          <h3 style="color:var(--purple);">Counter-surveillance / LE-aware</h3>
+          <ul id="cs-kw"></ul>
+          <div class="add-row">
+            <input type="text" id="add-cs" placeholder="word or regex pattern">
+            <button class="btn small" id="add-cs-btn">Add</button>
+          </div>
+        </div>
+        <div class="kw-list">
+          <h3 style="color:var(--cyan);">Robbery / lick planning</h3>
+          <ul id="rob-kw"></ul>
+          <div class="add-row">
+            <input type="text" id="add-rob" placeholder="word or regex pattern">
+            <button class="btn small" id="add-rob-btn">Add</button>
+          </div>
+        </div>
+      </div>
+      <div id="gloss-error"></div>
+    </div>
+  </section>
+
+  <!-- ESW LIST PANEL -->
+  <section class="panel" data-panel="excluded">
+    <div class="card">
+      <h2>ESW exclusion list</h2>
+      <p class="muted" style="margin-bottom: 14px; font-size: 12.5px;">
+        Numbers on this list are skipped in the overview, roster, location ranking, and memo so the tool only surfaces fresh PC candidates. Their data is still parsed in the background — you can still pull them up directly via the search box on the roster.
+      </p>
+      <div class="toggle-row" style="margin-bottom: 16px;">
+        <input type="checkbox" id="hide-excluded-toggle" checked>
+        <label for="hide-excluded-toggle">Hide excluded numbers from analysis</label>
+      </div>
+      <hr class="div">
+      <div class="subhead">Add numbers</div>
+      <p class="muted" style="font-size:11px; margin-bottom:8px;">One per line. Commas, spaces, and quotes are stripped. Match is exact against the number as it appears in the source CSV.</p>
+      <textarea id="excluded-input" rows="5" placeholder="13710047&#10;04235447&#10;08881188"></textarea>
+      <div class="actions" style="margin-top: 10px;">
+        <button class="btn primary" id="apply-excluded">Add to list</button>
+        <button class="btn" id="clear-excluded">Clear all</button>
+      </div>
+      <hr class="div">
+      <div class="subhead">Active list — <span id="excl-count" class="muted">0 numbers</span></div>
+      <div id="excluded-list"></div>
+    </div>
+  </section>
+
+  <!-- MEMO PANEL -->
+  <section class="panel" data-panel="memo">
+    <div class="card">
+      <h2>Generated intel memo</h2>
+      <div class="actions">
+        <button class="btn primary" id="copy-memo">Copy markdown</button>
+        <button class="btn" id="download-memo">Download .md</button>
+        <button class="btn" id="regen-memo">Regenerate</button>
+      </div>
+      <div class="memo-output" id="memo-output"></div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+// ========= STATE =========
+const STATE = {
+  // Multi-subject support: each ESW gets its own slot
+  subjects: {},           // id → { target, exportDate, filename, msgs, calls, dossier }
+  activeSubject: null,    // which subject's view is currently displayed
+  network: null,          // cross-subject derived data
+  bugs: {},               // bugId → { bugId, bugName, exportDate, filename, utterances, analysis }
+  activeBug: null,        // which bug's view is currently displayed
+
+  drugTerms: [
+    // Explicit drug names — high confidence
+    "\\bdrug[s]?\\b", "\\bdroga[s]?\\b",
+    "\\bcoke\\b", "\\bcocaine\\b", "\\bmeth\\b", "\\bcrack\\b",
+    "\\bmdma\\b", "\\bmolly\\b", "\\bket\\b", "\\bketamine\\b",
+    "\\bheroin\\b", "\\bfent\\b", "\\bfentanyl\\b",
+    "\\baddy\\b", "\\boxy\\b", "\\bperc[s]?\\b", "\\bxan[s]?\\b",
+    "\\bweed\\b", "\\bdope\\b", "skante",
+    // Dealer / transaction vocabulary
+    "\\blo\\b(?![ ]+sex)",   // exclude "lo sexy"
+    "drop lo", "send lo", "empt[ty]+y\\b",
+    "\\bproduct\\b", "re[\\s-]?up\\b", "\\bbulk\\b",
+    "price per", "how much per", "how much (you )?charge",
+    "how much you (got|lookin|look)", "still the fifty",
+    "\\bcustomers?\\b", "movin[g]? (work|product|weight)",
+    "tryn(a)? move", "the work\\b",
+    // Quantity patterns
+    "\\d+ ?(g|gs|gz|gees|grams?|oz|ounce[s]?|zip|kilo[s]?|key[s]?)\\b",
+    "\\bgee[' ]?s\\b", "\\bgrams?\\b", "\\bounce[s]?\\b",
+    "\\bzip\\b", "pure\\s+(coke|crack|drugs|\\d|\\w+)",
+    "\\bpure\\b", "the one shit", "fat one",
+    // Other dealer signals
+    "need some\\b", "got some\\b", "feria\\b",
+    "\\btrap\\b", "de trap", "\\bstash\\b", "\\bplug\\b",
+    "shoes onna floe", "new drop", "dog food",
+    "\\bticket\\b", "got that for you",
+    "you got \\d+", "slide.*with \\d+", "meet me with \\d+",
+    "\\b\\d+ bands?\\b", "\\d+\\s?(thousand|hundred|hunnid)",
+    "\\b\\d+k\\b",     // 20k, 35k — money in thousands
+  ],
+  gunTerms: [
+    // Explicit firearms
+    "\\bgun[s]?\\b", "\\bpistol[s]?\\b", "\\brifle[s]?\\b",
+    "\\bglock\\b", "\\bdraco\\b", "\\bswitch\\b", "\\bak[\\s-]?47\\b",
+    "\\bar[\\s-]?15\\b", "\\bak\\b", "\\bbullets?\\b", "\\bammo\\b",
+    "\\bmag[s]?\\b", "\\bmagazine\\b", "\\bclip\\b",
+    "\\bblower\\b", "\\bburner\\b", "\\bstrap\\b", "\\bfusca\\b",
+    "\\bgat\\b", "\\bblicky\\b", "\\bheat\\b",
+    // Violence verbs/phrases
+    "smoke that", "finna pop\\b", "pop flocker", "pop him", "pop them",
+    "gonna smoke", "smoked me", "smoke you", "smoke him",
+    "\\bshoot\\b(?!ing? you a dot)", "shoot over", "shot at",
+    "fades lined up", "friendly fade",
+    "setting (him|that nigga|him up|her up)\\b", "settin (him|him up)\\b",
+    "watch ur back", "watch your back",
+    "masked pulled up", "creep trucha", "spinnin (my|the) hood",
+    "sendin threats", "poppin it",
+    "\\bkys\\b", "\\bdie\\b(?!t)",
+    "\\bhots\\b", "on all hots",
+    "guns out", "two or three (pistols|guns|rifles|switches)",
+    "drill\\b", "got caught.*(gun|kick)", "caught.*body",
+    // Rivals
+    "\\bopp[s]?\\b", "mark ass",
+  ],
+  csTerms: [    // counter-surveillance / LE-aware
+    "\\bcops?\\b", "\\bjura\\b", "\\btrucha\\b",
+    "\\bfeds?\\b", "\\bone[\\s-]?time\\b", "\\bplaca[s]?\\b",
+    "\\btac\\b", "undercover", "\\buc\\b",
+    "\\bsnitch\\b", "\\brat\\b(?!s\\b)",
+    "burnt phone", "\\bburnt\\b", "phone burnt",
+    "ditch (the|your|that) (blower|phone|hoodie|burner|strap|gun|car|shit)",
+    "block[s]? hot\\b", "spanish.*hot", "hella hot",
+    "\\bunmask\\b", "watch (everything|the)",
+    "stay trucha", "keep trucha",
+    "\\bk9\\b", "cops.*dogs", "dogs.*cops",
+    "rolling deep", "tac.*undercover",
+    "phone[s]? (burnt|hot)", "hot phone",
+    "they got (mia|him|her|us|axe|me)",  // arrest indicator
+    "got popped", "got booked", "in county", "inna pen",
+  ],
+  robTerms: [   // robbery / "licks"
+    "\\blick\\b", "fat lick", "hit a (fat )?lick",
+    "lick of a lifetime", "\\bjale\\b",
+    "came up on", "came up\\b", "we came up",
+    "setting (him|that foo|that nigga) up",
+    "\\bvic\\b",
+    "\\bjewl[r]?s?\\b", "\\bjewelry\\b", "\\brolex\\b", "chain[s]?\\b",
+    "fourty bands", "\\d+ bands?\\b", "\\d+ racks?\\b",
+    "\\b\\d+k\\b", "(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred) bands",
+    "showing up with \\d", "showing up wit \\d",
+    "\\bping\\b", "drop (the|a) (dot|pin)",
+    "tinto with.*jewl", "all the jewl",
+    "pay me \\d+k", "\\d+k for both",
+    "big boy money", "running (a )?train",
+  ],
+  sortCol: "score",
+  sortDir: "desc",
+  excluded: new Set(),     // numbers with active ESWs — filtered out of analysis views
+  hideExcluded: true,
+};
+
+// Property getters: legacy reads of STATE.target / STATE.msgs / etc.
+// transparently resolve to the active subject's data.
+Object.defineProperties(STATE, {
+  target:     { get() { return this.subjects[this.activeSubject]?.target ?? null; }, configurable: true },
+  exportDate: { get() { return this.subjects[this.activeSubject]?.exportDate ?? null; }, configurable: true },
+  filename:   { get() { return this.subjects[this.activeSubject]?.filename ?? null; }, configurable: true },
+  msgs:       { get() { return this.subjects[this.activeSubject]?.msgs ?? []; }, configurable: true },
+  calls:      { get() { return this.subjects[this.activeSubject]?.calls ?? []; }, configurable: true },
+  dossier:    { get() { return this.subjects[this.activeSubject]?.dossier ?? {}; }, set(v) { if (this.subjects[this.activeSubject]) this.subjects[this.activeSubject].dossier = v; }, configurable: true },
+});
+
+function activeSubjectObj() { return STATE.subjects[STATE.activeSubject]; }
+function subjectIds() { return Object.keys(STATE.subjects); }
+function subjectLabel(id) {
+  const s = STATE.subjects[id];
+  if (!s) return id;
+  return s.label || s.target;
+}
+
+// ========= CSV PARSER =========
+function parseCSVLine(line) {
+  const out = []; let cur = ""; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQ) {
+      if (ch === '"' && line[i+1] === '"') { cur += '"'; i++; }
+      else if (ch === '"') { inQ = false; }
+      else cur += ch;
+    } else {
+      if (ch === ',') { out.push(cur); cur = ""; }
+      else if (ch === '"') inQ = true;
+      else cur += ch;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+
+function parseCSV(text) {
+  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/);
+  let target = null, exportDate = null, mode = null;
+  const msgs = [], calls = [];
+  for (const raw of lines) {
+    const line = raw;
+    if (!line.trim()) continue;
+    const m = line.match(/^"?Phone Number:\s*(.+?)"?$/);
+    if (m) { target = m[1].trim(); continue; }
+    const e = line.match(/^"?Export Date:\s*(.+?)"?$/);
+    if (e) { exportDate = e[1].trim(); continue; }
+    if (line.includes("=== MESSAGES ===")) { mode = "msg"; continue; }
+    if (line.includes("=== CALLS ===")) { mode = "call"; continue; }
+    if (line.startsWith("Sender Number")) continue;
+    if (!mode) continue;
+    const row = parseCSVLine(line);
+    if (row.length < 4) continue;
+    const rec = { from: row[0], to: row[1], body: row[2], ts: row[3] };
+    if (mode === "msg") msgs.push(rec); else calls.push(rec);
+  }
+  if (!target) throw new Error("Could not find target number ('Phone Number:' line) in file.");
+  if (msgs.length === 0 && calls.length === 0) throw new Error("No message or call rows parsed.");
+  return { target, exportDate, msgs, calls };
+}
+
+// Parse a bugged-property audio transcript CSV.
+// Format: "Bug ID:" / "Bug Name:" / "Export Date:" headers,
+// then columns: Message ID, Device ID, Message, Date
+function parseBugCSV(text) {
+  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/);
+  let bugId = null, bugName = null, exportDate = null, inData = false;
+  const utterances = [];
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    let m;
+    if ((m = line.match(/^"?Bug ID:\s*(.+?)"?$/)))   { bugId = m[1].trim(); continue; }
+    if ((m = line.match(/^"?Bug Name:\s*(.+?)"?$/)))  { bugName = m[1].trim(); continue; }
+    if ((m = line.match(/^"?Export Date:\s*(.+?)"?$/))){ exportDate = m[1].trim(); continue; }
+    if (line.startsWith("Message ID")) { inData = true; continue; }
+    if (!inData) continue;
+    const row = parseCSVLine(line);
+    if (row.length < 4) continue;
+    utterances.push({ mid: row[0], dev: row[1], body: row[2], ts: row[3] });
+  }
+  if (!bugId) throw new Error("Could not find 'Bug ID:' line in file.");
+  if (utterances.length === 0) throw new Error("No transcript rows parsed.");
+  return { bugId, bugName: bugName || bugId, exportDate, utterances };
+}
+
+// Detect which kind of CSV this is and parse accordingly.
+function detectAndParse(text) {
+  const head = text.slice(0, 400);
+  if (/Bug ID:/.test(head)) {
+    return { kind: "bug", data: parseBugCSV(text) };
+  }
+  if (/Phone Number:/.test(head)) {
+    return { kind: "phone", data: parseCSV(text) };
+  }
+  // Fallback: try phone, then bug
+  try { return { kind: "phone", data: parseCSV(text) }; }
+  catch (e) { return { kind: "bug", data: parseBugCSV(text) }; }
+}
+
+// ===================================================================
+// ===== CSV-CONVERTER:BEGIN =========================================
+// A pre-processing layer that sits IN FRONT OF the analyzer above.
+// It does NOT touch parseCSV / parseBugCSV / detectAndParse. Given an
+// uploaded CSV, it either (a) recognizes it as already-standard and
+// returns it unchanged, (b) recognizes a known "alternate" columnar
+// export and rewrites it into the standard "Phone Number:" phone-log
+// format the analyzer accepts, or (c) fails with a specific message.
+//
+// Known alternate format (as exported by some tools), e.g.
+//   phone_51628450_20260606_20260706.csv:
+//     ID,Source,Destination,Direction,Content,Timestamp
+//     16637605,28823268,51628450,Incoming,"wsg bro...",2026-06-19 20:47:15
+// Differs from the expected format in every structural way:
+//   - no "Phone Number:" / "Export Date:" metadata lines
+//   - no "=== MESSAGES ===" / "=== CALLS ===" section markers
+//   - a single columnar header instead of the "Sender Number,..." header
+//   - extra ID + Direction columns; Source/Destination/Content naming
+//   - timestamps as "YYYY-MM-DD HH:MM:SS" instead of "DD/Mon/YYYY HH:MM:SS"
+// This block is UMD-wrapped so the exact same code can be unit-tested
+// under Node (see tests/run_tests.mjs) with zero drift.
+(function (root, factory) {
+  const api = factory();
+  if (typeof module !== "undefined" && module.exports) module.exports = api; // Node tests
+  if (root) root.CSVConverter = api;                                          // browser
+})(typeof self !== "undefined" ? self : (typeof globalThis !== "undefined" ? globalThis : this), function () {
+  "use strict";
+
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const pad2 = n => String(n).padStart(2, "0");
+
+  // Field splitter — mirrors the analyzer's own parseCSVLine so that quoting
+  // and escaping behave identically on the way in and on the way out.
+  function splitCSVLine(line) {
+    const out = []; let cur = ""; let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQ) {
+        if (ch === '"' && line[i+1] === '"') { cur += '"'; i++; }
+        else if (ch === '"') { inQ = false; }
+        else cur += ch;
+      } else {
+        if (ch === ',') { out.push(cur); cur = ""; }
+        else if (ch === '"') inQ = true;
+        else cur += ch;
+      }
+    }
+    out.push(cur);
+    return out;
+  }
+
+  // Quote + escape a single field the way the expected format's rows are quoted.
+  function csvField(v) {
+    return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+  }
+
+  // Locate a column index by header name: exact alias match first, then a
+  // substring match on the longer, unambiguous aliases only.
+  function findCol(cols, exact, loose) {
+    for (const a of exact) { const i = cols.indexOf(a); if (i >= 0) return i; }
+    if (loose) for (let i = 0; i < cols.length; i++) {
+      if (loose.some(a => cols[i].includes(a))) return i;
+    }
+    return -1;
+  }
+
+  // Convert "YYYY-MM-DD HH:MM:SS" (and close variants) into the analyzer's
+  // expected "DD/Mon/YYYY HH:MM:SS". Anything already in the expected shape,
+  // or that we can't confidently recognize, is returned unchanged.
+  function reformatTimestamp(ts) {
+    if (!ts) return ts;
+    if (/^\s*\d{1,2}\/[A-Za-z]{3}\/\d{4}\b/.test(ts)) return ts; // already expected
+    const m = ts.match(/^\s*(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?/);
+    if (m) {
+      const mon = MONTHS[(+m[2]) - 1] || "Jan";
+      return `${pad2(+m[3])}/${mon}/${m[1]} ${pad2(+m[4])}:${m[5]}:${m[6] ? pad2(+m[6]) : "00"}`;
+    }
+    return ts; // unknown/ambiguous — don't guess
+  }
+
+  // What can the analyzer already ingest without help?
+  function standardKind(text) {
+    const head = (text || "").replace(/^﻿/, "").slice(0, 400);
+    if (/Bug ID:/.test(head)) return "standard-bug";
+    if (/Phone Number:/.test(head)) return "standard-phone";
+    return null;
+  }
+
+  // Classify an uploaded file. Returns one of:
+  //   { format: "standard-phone" | "standard-bug" }
+  //   { format: "alt-columnar", idx, header }
+  //   { format: "unknown", reason, header? }
+  function detectFormat(text, filename) {
+    const std = standardKind(text);
+    if (std) return { format: std };
+
+    const clean = (text || "").replace(/^﻿/, "");
+    const firstLine = clean.split(/\r?\n/).find(l => l.trim()) || "";
+    const cols = splitCSVLine(firstLine).map(c => c.trim().toLowerCase());
+    if (cols.length < 3) {
+      return { format: "unknown", reason: "No 'Phone Number:' or 'Bug ID:' header, and the first line is not a recognizable column header (found " + cols.length + " column(s)).", header: firstLine };
+    }
+    const idx = {
+      source: findCol(cols, ["source","sender","from","origin","caller","a-party","a party","from number","sender number"], ["source","sender","origin","caller"]),
+      dest:   findCol(cols, ["destination","recipient","target","to","callee","dest","b-party","b party","to number","target number","recipient number"], ["destination","recipient","callee"]),
+      content:findCol(cols, ["content","message","body","text","transcript","note","msg"], ["content","message","body","text","transcript"]),
+      ts:     findCol(cols, ["timestamp","datetime","date/time","date time","date","time"], ["timestamp","datetime","date"]),
+      dir:    findCol(cols, ["direction","dir","type","in/out","io"], ["direction"]),
+      id:     findCol(cols, ["id","message id","msg id","row id"], []),
+    };
+    const missing = ["source","dest","content","ts"].filter(k => idx[k] < 0);
+    if (missing.length) {
+      const nameOf = { source: "Source/Sender", dest: "Destination/Recipient", content: "Content/Message", ts: "Timestamp/Date" };
+      return {
+        format: "unknown",
+        reason: "Found a column header (" + firstLine + ") but could not locate required column(s): " + missing.map(k => nameOf[k]).join(", ") + ".",
+        header: firstLine,
+      };
+    }
+    return { format: "alt-columnar", idx, header: firstLine };
+  }
+
+  // Pick the subject/target number. Direction column is authoritative (it
+  // defines who "in"/"out" is relative to); filename phone_<n>_ and the
+  // most-frequent participant are corroborating fallbacks.
+  function inferTarget(records, votes, filename) {
+    const voted = Object.entries(votes).sort((a,b) => b[1]-a[1])[0];
+    const fromDir = voted ? voted[0] : null;
+    const fm = (filename || "").match(/phone[_-]?(\d{3,})/i);
+    const fromFile = fm ? fm[1] : null;
+    const freq = {};
+    for (const r of records) { if (r.from) freq[r.from]=(freq[r.from]||0)+1; if (r.to) freq[r.to]=(freq[r.to]||0)+1; }
+    const top = Object.entries(freq).sort((a,b) => b[1]-a[1])[0];
+    const fromFreq = top ? top[0] : null;
+    return fromDir || fromFile || fromFreq || null;
+  }
+
+  // Best-effort export date for the synthesized header (cosmetic; the
+  // analyzer only displays it). Uses the last date found in the filename.
+  function exportDateFor(filename) {
+    const m = (filename || "").match(/(\d{4})[-_]?(\d{2})[-_]?(\d{2})(?:[_-](\d{2})(\d{2})(\d{2}))?(?!.*\d)/);
+    if (m) {
+      const mon = MONTHS[(+m[2]) - 1] || "Jan";
+      const time = m[4] ? `${m[4]}:${m[5]}:${m[6]}` : "00:00:00";
+      return `${pad2(+m[3])}/${mon}/${m[1]} ${time}`;
+    }
+    const d = new Date();
+    return `${pad2(d.getDate())}/${MONTHS[d.getMonth()]}/${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+  }
+
+  function dirBucket(v) {
+    const s = (v || "").trim().toLowerCase();
+    if (/^out|^sent|^tx/.test(s)) return "out";
+    if (/^in|^rec|^rx/.test(s)) return "in";
+    return null;
+  }
+
+  // Core conversion. Returns:
+  //   { converted:false, text }                              (already standard)
+  //   { converted:true, text, target, rows, differences[] }  (rewritten)
+  // Throws Error with a specific message if the file can't be converted.
+  function convertToExpected(text, filename) {
+    const det = detectFormat(text, filename);
+    if (det.format === "standard-phone" || det.format === "standard-bug") {
+      return { converted: false, text, target: null, rows: 0, differences: [], sourceFormat: det.format };
+    }
+    if (det.format !== "alt-columnar") {
+      throw new Error(
+        (det.reason || "Unrecognized CSV format.") +
+        " Expected either the standard phone-log format (a \"Phone Number:\" line, \"=== MESSAGES ===\", then Sender Number,Target Number,Message,Timestamp rows) " +
+        "or a columnar export with Source, Destination, Content and Timestamp columns."
+      );
+    }
+
+    const { idx } = det;
+    const lines = (text || "").replace(/^﻿/, "").split(/\r?\n/);
+    let start = 0;
+    while (start < lines.length && !lines[start].trim()) start++; // skip leading blanks
+    const need = Math.max(idx.source, idx.dest, idx.content, idx.ts);
+
+    const records = [];
+    const votes = {};
+    let tsReformatted = 0;
+    for (let i = start + 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+      const r = splitCSVLine(lines[i]);
+      if (r.length <= need) continue; // malformed / short row — skip
+      const from = (r[idx.source] || "").trim();
+      const to   = (r[idx.dest]   || "").trim();
+      const body = r[idx.content] != null ? r[idx.content] : "";
+      const rawTs = (r[idx.ts] || "").trim();
+      const ts = reformatTimestamp(rawTs);
+      if (ts !== rawTs) tsReformatted++;
+      records.push({ from, to, body, ts });
+      if (idx.dir >= 0) {
+        const b = dirBucket(r[idx.dir]);
+        if (b === "out" && from) votes[from] = (votes[from]||0)+1;
+        else if (b === "in" && to) votes[to] = (votes[to]||0)+1;
+      }
+    }
+
+    if (!records.length) {
+      throw new Error("Recognized an alternate columnar CSV (header: " + det.header + ") but found no data rows to convert.");
+    }
+    const target = inferTarget(records, votes, filename);
+    if (!target) {
+      throw new Error("Recognized an alternate columnar CSV but could not determine the subject phone number. Provide a Direction column, or name the file phone_<number>_....csv.");
+    }
+
+    const out = [];
+    out.push('"Phone Number: ' + target + '"');
+    out.push('"Export Date: ' + exportDateFor(filename) + '"');
+    out.push("");
+    out.push('"=== MESSAGES ==="');
+    out.push("Sender Number,Target Number,Message,Timestamp");
+    for (const rec of records) {
+      out.push([csvField(rec.from), csvField(rec.to), csvField(rec.body), csvField(rec.ts)].join(","));
+    }
+
+    const differences = [
+      'No "Phone Number:" header — inferred subject ' + target + (idx.dir >= 0 ? " from the Direction column" : ((filename||"").match(/phone[_-]?\d/i) ? " from the filename" : " from the most-frequent participant")),
+      'No "=== MESSAGES ==="/"=== CALLS ===" section markers — inserted; all ' + records.length + " rows treated as messages",
+      "Remapped columns Source→Sender Number, Destination→Target Number, Content→Message" + (idx.id >= 0 || idx.dir >= 0 ? " (dropped " + [idx.id>=0?"ID":null, idx.dir>=0?"Direction":null].filter(Boolean).join(" + ") + ")" : ""),
+    ];
+    if (tsReformatted) differences.push("Reformatted " + tsReformatted + " timestamp(s) from ISO YYYY-MM-DD to DD/Mon/YYYY");
+    if (!standardKind(text)) differences.unshift('No "Phone Number:" / "Bug ID:" header present — file would have failed the analyzer with "Could not find \'Bug ID:\' line in file."');
+
+    return {
+      converted: true,
+      text: out.join("\n") + "\n",
+      target,
+      rows: records.length,
+      differences,
+      sourceFormat: "alt-columnar (" + det.header + ")",
+    };
+  }
+
+  return { detectFormat, convertToExpected, reformatTimestamp, splitCSVLine, findCol, inferTarget, standardKind };
+});
+// ===== CSV-CONVERTER:END ===========================================
+// ===================================================================
+
+// Strip RP/transcription formatting artifacts for clean display.
+// Keeps the original searchable text intact elsewhere.
+function cleanUtterance(body) {
+  return (body || "")
+    .replace(/!\{#?[0-9A-Fa-f]{3,8}\}/g, "")   // color codes !{#C2A2DA}
+    .replace(/\{#?[0-9A-Fa-f]{3,8}\}/g, "")
+    .replace(/\/([^/]+)\//g, "$1")             // /italics/ markers
+    .replace(/''+/g, "'")                       // doubled apostrophes
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+function isTranslated(body) { return /^\s*\[(Spanish|Language|Translated)\]/i.test(body || ""); }
+
+// ========= ANALYSIS =========
+const LOC_RE = /\[LOCATION\]\s*(-?\d+\.?\d*),\s*(-?\d+\.?\d*),\s*(-?\d+\.?\d*)\.\s*(.+)/;
+// Extract *money* references, not every bare number. A raw \d{2,5} scan
+// flagged street numbers, counts and ages as "$ refs" and inflated scores.
+// We now require an explicit currency signal:
+//   $200 / $1,200 / $5k / $2m         (leading symbol, optional k/m)
+//   200 dollars|bucks|usd             (trailing currency word)
+//   5k / 3 bands|racks|stacks         (thousands units; band/rack/stack = 1k)
+//   for 200 / paid 200 / owe 200      (price/debt context)
+// Returns an array of numeric values (deduped by occurrence, 10–1,000,000).
+function extractMoney(body) {
+  const text = body || "";
+  const vals = [];
+  const push = v => { if (Number.isFinite(v) && v >= 10 && v <= 1000000) vals.push(v); };
+  const scaled = (numStr, unit) => {
+    let v = parseInt(String(numStr).replace(/,/g, ""), 10);
+    const u = (unit || "").toLowerCase();
+    if (u === "k" || /^(band|rack|stack|stax|bandz|racc)/.test(u)) v *= 1000;
+    else if (u === "m") v *= 1000000;
+    return v;
+  };
+  let m;
+  const symbolRe = /\$\s?(\d{1,3}(?:,\d{3})+|\d+)\s?(k|m)?/ig;
+  while ((m = symbolRe.exec(text))) push(scaled(m[1], m[2]));
+  // Blank out $-amounts so the next passes can't recount the same figure
+  // (e.g. "$5k" must not also match the "5k" unit rule).
+  const rest = text.replace(/\$\s?(\d{1,3}(?:,\d{3})+|\d+)\s?(k|m)?/ig, "   ");
+  const unitRe = /\b(\d{1,4})\s?(k|m|dollars?|bucks?|usd|bands?|bandz|racks?|racc|stacks?|stax|thousand|hundred|hunnid)\b/ig;
+  while ((m = unitRe.exec(rest))) {
+    const u = m[2].toLowerCase();
+    if (u === "thousand") push(parseInt(m[1], 10) * 1000);
+    else if (u === "hundred" || u === "hunnid") push(parseInt(m[1], 10) * 100);
+    else push(scaled(m[1], u));
+  }
+  const ctxRe = /\b(?:for|paid|pay|owe[sd]?|cost|charge[ds]?|price|drop|sent|send|get)\s+\$?(\d{2,6})\b/ig;
+  while ((m = ctxRe.exec(rest))) push(parseInt(m[1], 10));
+  return vals;
+}
+
+function otherParty(rec) { return rec.from === STATE.target ? rec.to : rec.from; }
+function direction(rec) { return rec.from === STATE.target ? "out" : "in"; }
+
+// True if `t` is a syntactically valid regex pattern on its own.
+function isValidRegexTerm(t) { try { new RegExp(t); return true; } catch (e) { return false; } }
+
+// Build the "(a|b|c)" detection regex defensively: a single malformed custom
+// term must never throw and blank every analysis view. Invalid terms are
+// dropped here (and rejected at add-time, so this is just belt-and-braces).
+function groupRegex(terms) {
+  const good = terms.filter(isValidRegexTerm);
+  if (!good.length) return /(?!)/ig; // matches nothing
+  try { return new RegExp("(" + good.join("|") + ")", "ig"); }
+  catch (e) { return /(?!)/ig; }
+}
+function buildDrugRegex() { return groupRegex(STATE.drugTerms); }
+function buildGunRegex()  { return groupRegex(STATE.gunTerms); }
+function buildCsRegex()   { return groupRegex(STATE.csTerms); }
+function buildRobRegex()  { return groupRegex(STATE.robTerms); }
+
+// Terms considered "explicit" — boost their weight in scoring
+const EXPLICIT_DRUG = /\b(coke|cocaine|meth|crack|mdma|molly|ket|ketamine|heroin|fent|fentanyl|addy|oxy|perc|xan|weed|dope|skante|droga|drugs?|product|re[\s-]?up|bulk|ounce|grams?|gees?|\d+\s?(g|gs|gz|grams?|ounce)|pure\s+(coke|crack|drug))\b/i;
+const EXPLICIT_GUN  = /\b(gun|guns|pistol|pistols|rifle|rifles|glock|draco|switch|ak[\s-]?47|ar[\s-]?15|ak|bullet|bullets|ammo|magazine|blower|burner|drill)\b/i;
+
+function analyze(subjectId) {
+  // Default: analyze the active subject. Can also be called per-subject after bulk load.
+  const id = subjectId || STATE.activeSubject;
+  const subject = STATE.subjects[id];
+  if (!subject) return;
+
+  const drugRe = buildDrugRegex();
+  const gunRe  = buildGunRegex();
+  const csRe   = buildCsRegex();
+  const robRe  = buildRobRegex();
+  const dossier = {};
+  function ensure(c) {
+    if (!dossier[c]) dossier[c] = {
+      number: c, msgs: [], calls: [],
+      drugHits: [], gunHits: [], csHits: [], robHits: [],
+      explicitDrug: 0, explicitGun: 0,
+      locations: [], moneyRefs: [],
+    };
+    return dossier[c];
+  }
+
+  function otherFor(rec) { return rec.from === subject.target ? rec.to : rec.from; }
+  function processRecord(rec, isCall) {
+    const c = otherFor(rec);
+    if (!c) return;
+    const d = ensure(c);
+    if (isCall) d.calls.push(rec); else d.msgs.push(rec);
+    const body = rec.body || "";
+
+    drugRe.lastIndex = 0;
+    if (drugRe.test(body)) {
+      d.drugHits.push({ ...rec, _call: isCall });
+      if (EXPLICIT_DRUG.test(body)) d.explicitDrug++;
+    }
+    gunRe.lastIndex = 0;
+    if (gunRe.test(body)) {
+      d.gunHits.push({ ...rec, _call: isCall });
+      if (EXPLICIT_GUN.test(body)) d.explicitGun++;
+    }
+    csRe.lastIndex = 0;
+    if (csRe.test(body)) d.csHits.push({ ...rec, _call: isCall });
+    robRe.lastIndex = 0;
+    if (robRe.test(body)) d.robHits.push({ ...rec, _call: isCall });
+
+    const lm = LOC_RE.exec(body);
+    if (lm) {
+      d.locations.push({
+        street: lm[4].trim(),
+        coords: [lm[1], lm[2], lm[3]],
+        ts: rec.ts,
+        dir: rec.from === subject.target ? "out" : "in",
+      });
+    }
+    const isLocLine = body.startsWith("[LOCATION]");
+    if (!isLocLine) {
+      for (const v of extractMoney(body)) {
+        d.moneyRefs.push({ value: v, ts: rec.ts, body, _call: isCall });
+      }
+    }
+  }
+
+  subject.msgs.forEach(m => processRecord(m, false));
+  subject.calls.forEach(c => processRecord(c, true));
+
+  for (const c in dossier) {
+    const d = dossier[c];
+    const drugScore = d.drugHits.length * 3 + d.explicitDrug * 2;
+    const gunScore  = d.gunHits.length * 4 + d.explicitGun * 3;
+    const csScore   = d.csHits.length * 2;
+    const robScore  = d.robHits.length * 2;
+    d.drugScore = drugScore; d.gunScore = gunScore;
+    d.csScore = csScore;     d.robScore = robScore;
+    d.score = drugScore + gunScore + csScore + robScore + d.moneyRefs.length;
+    d.totalContacts = d.msgs.length + d.calls.length;
+    const cats = [d.drugHits.length, d.gunHits.length, d.csHits.length, d.robHits.length].filter(n => n > 0).length;
+    d.categoriesHit = cats;
+    if (cats >= 3) d.score += 5;
+    if (d.score >= 30 && (d.drugHits.length >= 5 || d.explicitDrug >= 2 || d.explicitGun >= 2)) d.tier = 1;
+    else if (d.score >= 15) d.tier = 2;
+    else if (d.score >= 4)  d.tier = 3;
+    else d.tier = null;
+  }
+  subject.dossier = dossier;
+}
+
+// Re-analyze every loaded subject (used after vocab edits)
+function analyzeAll() {
+  for (const id of subjectIds()) analyze(id);
+  computeNetwork();
+}
+
+// Re-analyze EVERYTHING — subjects, network, and bugs (after vocab edits)
+function reanalyzeAll() {
+  for (const id of subjectIds()) analyze(id);
+  computeNetwork();
+  for (const id of bugIds()) analyzeBug(id);
+}
+
+// Cross-subject network analysis
+function computeNetwork() {
+  const ids = subjectIds();
+  const subjectTargets = new Set(ids.map(id => STATE.subjects[id].target));
+
+  const byContact = {};
+  for (const id of ids) {
+    const sub = STATE.subjects[id];
+    for (const contactNum in sub.dossier) {
+      const entry = sub.dossier[contactNum];
+      if (!byContact[contactNum]) byContact[contactNum] = {
+        number: contactNum,
+        subjects: {},
+        isLoadedSubject: subjectTargets.has(contactNum),
+        totalScore: 0,
+        totalDrug: 0, totalGun: 0, totalCs: 0, totalRob: 0,
+        totalMsgs: 0, totalCalls: 0,
+      };
+      const agg = byContact[contactNum];
+      agg.subjects[id] = entry;
+      agg.totalScore += entry.score;
+      agg.totalDrug  += entry.drugHits.length;
+      agg.totalGun   += entry.gunHits.length;
+      agg.totalCs    += entry.csHits.length;
+      agg.totalRob   += entry.robHits.length;
+      agg.totalMsgs  += entry.msgs.length;
+      agg.totalCalls += entry.calls.length;
+    }
+  }
+  for (const c in byContact) {
+    byContact[c].subjectCount = Object.keys(byContact[c].subjects).length;
+  }
+
+  const directConnections = [];
+  for (const id of ids) {
+    const sub = STATE.subjects[id];
+    for (const otherId of ids) {
+      if (otherId === id) continue;
+      const otherTarget = STATE.subjects[otherId].target;
+      if (sub.dossier[otherTarget]) {
+        const key = [id, otherId].sort().join("|");
+        if (!directConnections.find(dc => dc.key === key)) {
+          const a = STATE.subjects[id].dossier[STATE.subjects[otherId].target];
+          const b = STATE.subjects[otherId].dossier[STATE.subjects[id].target];
+          directConnections.push({
+            key, a: id, b: otherId,
+            msgsA: a?.msgs.length || 0, callsA: a?.calls.length || 0,
+            msgsB: b?.msgs.length || 0, callsB: b?.calls.length || 0,
+            scoreA: a?.score || 0, scoreB: b?.score || 0,
+            combinedScore: (a?.score || 0) + (b?.score || 0),
+          });
+        }
+      }
+    }
+  }
+  directConnections.sort((x, y) => y.combinedScore - x.combinedScore);
+
+  const mutual = Object.values(byContact)
+    .filter(c => c.subjectCount >= 2 && !c.isLoadedSubject)
+    .sort((a, b) => {
+      if (b.subjectCount !== a.subjectCount) return b.subjectCount - a.subjectCount;
+      return b.totalScore - a.totalScore;
+    });
+
+  STATE.network = { byContact, directConnections, mutual };
+}
+
+// ===== BUG (audio transcript) analysis =====
+function bugIds() { return Object.keys(STATE.bugs); }
+
+// Stopwords for name extraction (capitalized words that aren't people)
+const NAME_STOP = new Set(["i","im","i'm","the","a","an","and","but","or","so","if","when","what","where","who","why","how","this","that","these","those","he","she","they","we","you","it","at","to","from","for","with","on","in","of","my","your","his","her","our","their","no","not","yes","yeah","nah","ok","okay","oh","hey","yo","yoo","bro","dog","foo","fool","holmes","homes","homie","homies","ese","carnal","soldado","nigga","niggas","man","shit","fuck","fucking","gonna","finna","wanna","gotta","most","just","like","get","got","make","sure","keep","let","last","night","good","spanish","language","club","el","la","los","mr","know","time","thing","things","some","one","two","all","now","back","up","down","out","off","here","there","then","than","about","cause","because","still","even","much","really","mike"].map(s=>s.toLowerCase()));
+
+function extractNames(utterances) {
+  const counts = {};
+  function bump(name) {
+    const key = name.trim();
+    if (!key) return;
+    counts[key] = (counts[key] || 0) + 1;
+  }
+  for (const u of utterances) {
+    const body = cleanUtterance(u.body).replace(/^\[(Spanish|Language|Translated)\]\s*/i, "");
+    // Explicit patterns: "named X", "homie X", "homeboy X", "carnal X", "ese X", "soldado X"
+    let m;
+    const namedRe = /\b(?:named|homie|homeboy|homegirl|carnal|ese|soldado|called)\s+([A-Z][a-z]+)\b/g;
+    while ((m = namedRe.exec(body)) !== null) {
+      if (!NAME_STOP.has(m[1].toLowerCase())) bump(m[1]);
+    }
+    // Generic: capitalized word NOT at sentence start
+    const tokRe = /(?:[a-z,]\s+|\/)([A-Z][a-z]{2,})\b/g;
+    while ((m = tokRe.exec(body)) !== null) {
+      const w = m[1];
+      if (!NAME_STOP.has(w.toLowerCase())) bump(w);
+    }
+  }
+  // Keep names mentioned 2+ times (filters most one-off false positives)
+  return Object.entries(counts)
+    .filter(([n, c]) => c >= 2)
+    .sort((a, b) => b[1] - a[1]);
+}
+
+function extractLocations(utterances) {
+  const counts = {};
+  for (const u of utterances) {
+    const body = cleanUtterance(u.body).replace(/^\[(Spanish|Language|Translated)\]\s*/i, "");
+    let m;
+    // "at <Place>", "@ <Place>", "works at <Place>", "to/from <Place>"
+    const re = /\b(?:at|@|to|from|outside|inside)\s+((?:El |La |Los |Las |Club |The )?[A-Z][A-Za-z0-9]+(?:\s+\d+)?(?:\s+[A-Z][A-Za-z]+)?)/g;
+    while ((m = re.exec(body)) !== null) {
+      let place = m[1].trim();
+      // skip if it's clearly a name-stop or a person
+      if (NAME_STOP.has(place.toLowerCase())) continue;
+      counts[place] = (counts[place] || 0) + 1;
+    }
+    // Known venue patterns: "Club 52", "El Punto"
+    const venueRe = /\b((?:Club|El|La)\s+[A-Z0-9][A-Za-z0-9]*)\b/g;
+    while ((m = venueRe.exec(body)) !== null) {
+      counts[m[1]] = (counts[m[1]] || 0) + 1;
+    }
+  }
+  return Object.entries(counts)
+    .filter(([n, c]) => c >= 2)
+    .sort((a, b) => b[1] - a[1]);
+}
+
+function analyzeBug(bugId) {
+  const bug = STATE.bugs[bugId];
+  if (!bug) return;
+  const drugRe = buildDrugRegex();
+  const gunRe  = buildGunRegex();
+  const csRe   = buildCsRegex();
+  const robRe  = buildRobRegex();
+
+  let drug = 0, gun = 0, cs = 0, rob = 0, explicitDrug = 0, explicitGun = 0;
+  const flagged = [];
+  for (const u of bug.utterances) {
+    const body = u.body || "";
+    const tags = [];
+    drugRe.lastIndex = 0; if (drugRe.test(body)) { drug++; tags.push("drug"); if (EXPLICIT_DRUG.test(body)) explicitDrug++; }
+    gunRe.lastIndex = 0;  if (gunRe.test(body))  { gun++;  tags.push("gun");  if (EXPLICIT_GUN.test(body)) explicitGun++; }
+    csRe.lastIndex = 0;   if (csRe.test(body))   { cs++;   tags.push("cs"); }
+    robRe.lastIndex = 0;  if (robRe.test(body))  { rob++;  tags.push("rob"); }
+    if (tags.length) flagged.push({ ...u, tags });
+  }
+  const score = drug * 3 + explicitDrug * 2 + gun * 4 + explicitGun * 3 + cs * 2 + rob * 2;
+  bug.analysis = {
+    drug, gun, cs, rob, explicitDrug, explicitGun, score,
+    flaggedCount: flagged.length,
+    flagged,
+    names: extractNames(bug.utterances),
+    locations: extractLocations(bug.utterances),
+  };
+}
+
+function analyzeAllBugs() {
+  for (const id of bugIds()) analyzeBug(id);
+}
+
+// Group bugs that belong to the same property (shared name prefix before last - or _)
+function bugPropertyKey(bugName) {
+  // e.g. TRAP_CFS-KC / TRAP-CFS-BB / TRAP_CFS-RT → "TRAP CFS"
+  return (bugName || "").replace(/[-_][A-Za-z0-9]{1,4}$/, "").replace(/[-_]+/g, " ").trim().toUpperCase();
+}
+
+// Merge all bugs in a property into a deduplicated transcript (same body+ts = one utterance)
+function mergedPropertyUtterances(propKey) {
+  const seen = new Map();
+  for (const id of bugIds()) {
+    const bug = STATE.bugs[id];
+    if (bugPropertyKey(bug.bugName) !== propKey) continue;
+    for (const u of bug.utterances) {
+      const k = u.body + "|" + u.ts;
+      if (!seen.has(k)) seen.set(k, { ...u, devices: new Set([bug.bugName]) });
+      else seen.get(k).devices.add(bug.bugName);
+    }
+  }
+  const arr = [...seen.values()];
+  arr.sort((a, b) => bugParseTs(a.ts) - bugParseTs(b.ts));
+  return arr;
+}
+
+function bugParseTs(ts) {
+  const m = (ts || "").match(/(\d+)\/(\w+)\/(\d+) (\d+):(\d+):(\d+)/);
+  if (!m) return 0;
+  const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+  return new Date(+m[3], months[m[2]]||0, +m[1], +m[4], +m[5], +m[6]).getTime();
+}
+
+// ========= UI HELPERS =========
+function $(sel) { return document.querySelector(sel); }
+function $$(sel) { return document.querySelectorAll(sel); }
+function escapeHtml(s) {
+  return (s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
+}
+function highlightBody(body) {
+  // Use placeholder tokens so later regex passes can never match against
+  // earlier passes' inserted HTML (e.g. a vocab term matching the word
+  // "mark" inside an already-inserted <mark> tag).
+  let safe = escapeHtml(body);
+  const tokens = [];
+  function tokenize(re, cls) {
+    safe = safe.replace(re, (m) => {
+      const i = tokens.length;
+      tokens.push({ cls, text: m });
+      return `\x01\x02${i}\x03`;   // control chars — can't appear in user text or vocab regex
+    });
+  }
+  tokenize(LOC_RE, "loc");
+  tokenize(buildGunRegex(), "gun");
+  tokenize(buildCsRegex(), "cs");
+  tokenize(buildRobRegex(), "rob");
+  tokenize(buildDrugRegex(), "drug");   // drug is default class — no class attr for backward compat
+  return safe.replace(/\x01\x02(\d+)\x03/g, (m, i) => {
+    const t = tokens[+i];
+    return t.cls === "drug"
+      ? `<mark>${t.text}</mark>`
+      : `<mark class="${t.cls}">${t.text}</mark>`;
+  });
+}
+
+function switchTab(name) {
+  $$("nav.tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  $$(".panel").forEach(p => p.classList.toggle("active", p.dataset.panel === name));
+  if (name === "network") renderNetwork();
+  if (name === "overview") renderOverview();
+  if (name === "search")   renderSearch();
+  if (name === "roster")   renderRoster();
+  if (name === "locations")renderLocations();
+  if (name === "bugs")     renderBugs();
+  if (name === "glossary") renderGlossary();
+  if (name === "excluded") renderExcluded();
+  if (name === "memo")     renderMemo();
+}
+
+// Returns the dossier entries that should appear in analysis views,
+// honoring the hideExcluded toggle.
+function activeContacts() {
+  const all = Object.values(STATE.dossier);
+  if (!STATE.hideExcluded) return all;
+  return all.filter(d => !STATE.excluded.has(d.number));
+}
+
+function normalizeExclusionInput(text) {
+  // Accept newlines, commas, spaces, semicolons. Strip quotes & whitespace.
+  return text.split(/[\s,;]+/)
+    .map(s => s.replace(/['"]/g, "").trim())
+    .filter(s => s.length > 0);
+}
+
+function enableTabs() {
+  const hasPhone = subjectIds().length > 0;
+  const hasBugs  = bugIds().length > 0;
+  const phoneTabs = ["overview", "search", "roster", "contact", "locations", "excluded", "memo"];
+  $$("nav.tabs button").forEach(b => {
+    const t = b.dataset.tab;
+    if (t === "load") { b.disabled = false; return; }
+    if (t === "glossary") { b.disabled = !(hasPhone || hasBugs); return; }
+    if (t === "bugs") { b.disabled = !hasBugs; return; }
+    if (t === "network") { b.disabled = !(subjectIds().length > 1); return; }
+    if (phoneTabs.includes(t)) { b.disabled = !hasPhone; return; }
+    b.disabled = false;
+  });
+}
+
+// ========= RENDERING =========
+function renderOverview() {
+  const contacts = activeContacts();
+  const allContacts = Object.values(STATE.dossier);
+  const totalDrug = contacts.reduce((s,d)=>s+d.drugHits.length, 0);
+  const totalGun  = contacts.reduce((s,d)=>s+d.gunHits.length, 0);
+  const totalCs   = contacts.reduce((s,d)=>s+d.csHits.length, 0);
+  const totalRob  = contacts.reduce((s,d)=>s+d.robHits.length, 0);
+  const totalLoc  = contacts.reduce((s,d)=>s+d.locations.length, 0);
+  const excludedInData = allContacts.filter(d => STATE.excluded.has(d.number)).length;
+
+  const stats = [
+    { label: "Target", value: STATE.target, mono: true },
+    { label: "Period", value: STATE.exportDate || "—", mono: true, small: true },
+    { label: "SMS records", value: STATE.msgs.length },
+    { label: "Call segments", value: STATE.calls.length },
+    { label: "Contacts (active)", value: contacts.length, sub: excludedInData ? `+${excludedInData} excluded` : null },
+    { label: "Drug flags", value: totalDrug, color: "amber" },
+    { label: "Violence flags", value: totalGun, color: "red" },
+    { label: "CS flags", value: totalCs, color: "purple" },
+    { label: "Robbery flags", value: totalRob, color: "cyan" },
+    { label: "Location pins", value: totalLoc },
+  ];
+  $("#stats-grid").innerHTML = stats.map(s => `
+    <div class="stat">
+      <div class="label">${s.label}${s.sub?` <span style="color:var(--text-dim)">· ${s.sub}</span>`:""}</div>
+      <div class="value ${s.color||""}" style="${s.small?'font-size:14px;':s.mono?'font-family:IBM Plex Mono, monospace; font-size:22px;':''}">${escapeHtml(String(s.value))}</div>
+    </div>`).join("");
+
+  // top by drug score
+  const drugTop = contacts.filter(d=>d.drugHits.length>0).sort((a,b)=> b.drugScore - a.drugScore).slice(0, 10);
+  $("#top-drug-tbl tbody").innerHTML = drugTop.length
+    ? drugTop.map(d=>`
+      <tr data-number="${d.number}">
+        <td>${d.number}${tierBadge(d.tier)}</td>
+        <td class="num">${d.drugHits.length}</td>
+        <td class="num" style="color:${d.explicitDrug?'var(--amber)':'inherit'}">${d.explicitDrug}</td>
+        <td class="num">${d.moneyRefs.length}</td>
+        <td class="num">${d.locations.length}</td>
+        <td class="num">${d.score}</td>
+      </tr>`).join("")
+    : `<tr><td colspan="6" class="muted" style="text-align:center;padding:20px;">No drug-flagged contacts.</td></tr>`;
+
+  const gunTop = contacts.filter(d=>d.gunHits.length>0).sort((a,b)=> b.gunScore - a.gunScore).slice(0, 10);
+  $("#top-gun-tbl tbody").innerHTML = gunTop.length
+    ? gunTop.map(d=>{
+        const sample = d.gunHits[0]?.body?.slice(0, 90) || "";
+        return `<tr data-number="${d.number}">
+          <td>${d.number}${tierBadge(d.tier)}</td>
+          <td class="num">${d.gunHits.length}</td>
+          <td class="num" style="color:${d.explicitGun?'var(--red)':'inherit'}">${d.explicitGun}</td>
+          <td class="num">${d.totalContacts}</td>
+          <td class="muted" style="font-size:11px;">${escapeHtml(sample)}</td>
+        </tr>`;
+      }).join("")
+    : `<tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">No violence-flagged contacts.</td></tr>`;
+
+  const csTop = contacts.filter(d=>d.csHits.length>0).sort((a,b)=> b.csHits.length - a.csHits.length).slice(0, 10);
+  $("#top-cs-tbl tbody").innerHTML = csTop.length
+    ? csTop.map(d=>{
+        const sample = d.csHits[0]?.body?.slice(0, 110) || "";
+        return `<tr data-number="${d.number}">
+          <td>${d.number}${tierBadge(d.tier)}</td>
+          <td class="num" style="color:var(--purple)">${d.csHits.length}</td>
+          <td class="muted" style="font-size:11px;">${escapeHtml(sample)}</td>
+        </tr>`;
+      }).join("")
+    : `<tr><td colspan="3" class="muted" style="text-align:center;padding:20px;">No counter-surveillance flags.</td></tr>`;
+
+  const robTop = contacts.filter(d=>d.robHits.length>0).sort((a,b)=> b.robHits.length - a.robHits.length).slice(0, 10);
+  $("#top-rob-tbl tbody").innerHTML = robTop.length
+    ? robTop.map(d=>{
+        const sample = d.robHits[0]?.body?.slice(0, 110) || "";
+        return `<tr data-number="${d.number}">
+          <td>${d.number}${tierBadge(d.tier)}</td>
+          <td class="num" style="color:var(--cyan)">${d.robHits.length}</td>
+          <td class="muted" style="font-size:11px;">${escapeHtml(sample)}</td>
+        </tr>`;
+      }).join("")
+    : `<tr><td colspan="3" class="muted" style="text-align:center;padding:20px;">No robbery-planning flags.</td></tr>`;
+
+  const multiTop = contacts.filter(d => d.categoriesHit >= 3).sort((a,b) => b.score - a.score).slice(0, 10);
+  $("#top-multi-tbl tbody").innerHTML = multiTop.length
+    ? multiTop.map(d=>`
+      <tr data-number="${d.number}">
+        <td>${d.number}${tierBadge(d.tier)}<span class="tier-badge" style="color:var(--purple); border-color:var(--purple-dim);">MULTI</span></td>
+        <td class="num">${d.drugHits.length}</td>
+        <td class="num">${d.gunHits.length}</td>
+        <td class="num" style="color:var(--purple)">${d.csHits.length}</td>
+        <td class="num" style="color:var(--cyan)">${d.robHits.length}</td>
+        <td class="num">${d.score}</td>
+      </tr>`).join("")
+    : `<tr><td colspan="6" class="muted" style="text-align:center;padding:20px;">No contacts hit 3+ categories.</td></tr>`;
+}
+
+function tierBadge(t) {
+  if (!t) return "";
+  return `<span class="tier-badge t${t}">T${t}</span>`;
+}
+
+function renderRoster() {
+  // When hideExcluded is on, filter them out completely.
+  // When off, show all but mark excluded rows.
+  const rows = STATE.hideExcluded ? activeContacts() : Object.values(STATE.dossier);
+  const search = $("#roster-search").value.trim().toLowerCase();
+  // Search bypasses the hideExcluded filter so analysts can always find a number directly
+  const sourceForSearch = search ? Object.values(STATE.dossier) : rows;
+  const filtered = search ? sourceForSearch.filter(d => d.number.toLowerCase().includes(search)) : rows;
+
+  const key = STATE.sortCol;
+  const sgn = STATE.sortDir === "asc" ? 1 : -1;
+  const accessor = {
+    number: d => d.number,
+    msgs:   d => d.msgs.length,
+    calls:  d => d.calls.length,
+    drug:   d => d.drugHits.length,
+    gun:    d => d.gunHits.length,
+    cs:     d => d.csHits.length,
+    rob:    d => d.robHits.length,
+    money:  d => d.moneyRefs.length,
+    locs:   d => d.locations.length,
+    score:  d => d.score,
+  }[key] || (d => d.score);
+  filtered.sort((a,b) => {
+    const va = accessor(a), vb = accessor(b);
+    if (va < vb) return -1*sgn;
+    if (va > vb) return  1*sgn;
+    return 0;
+  });
+
+  const maxScore = Math.max(1, ...rows.map(d=>d.score));
+
+  $("#roster-tbl tbody").innerHTML = filtered.map(d => `
+    <tr data-number="${d.number}" class="${STATE.excluded.has(d.number) ? 'is-excluded' : ''}">
+      <td>${d.number}${tierBadge(d.tier)}${d.categoriesHit >= 3 ? '<span class="tier-badge" style="color:var(--purple); border-color:var(--purple-dim);">MULTI</span>' : ''}</td>
+      <td class="num">${d.msgs.length}</td>
+      <td class="num">${d.calls.length}</td>
+      <td class="num">${d.drugHits.length}${d.explicitDrug ? `<span style="color:var(--amber);font-size:9px;"> +${d.explicitDrug}E</span>`:''}</td>
+      <td class="num">${d.gunHits.length}${d.explicitGun ? `<span style="color:var(--red);font-size:9px;"> +${d.explicitGun}E</span>`:''}</td>
+      <td class="num" style="color:${d.csHits.length?'var(--purple)':'inherit'}">${d.csHits.length}</td>
+      <td class="num" style="color:${d.robHits.length?'var(--cyan)':'inherit'}">${d.robHits.length}</td>
+      <td class="num">${d.moneyRefs.length}</td>
+      <td class="num">${d.locations.length}</td>
+      <td class="num">${d.score}<span class="score-bar" style="width:${(d.score/maxScore*80).toFixed(1)}px"></span></td>
+    </tr>`).join("");
+
+  // sort indicator
+  $$("#roster-tbl thead th").forEach(th => {
+    th.classList.remove("sort-asc","sort-desc");
+    if (th.dataset.sort === key) th.classList.add(STATE.sortDir === "asc" ? "sort-asc" : "sort-desc");
+  });
+}
+
+// Parse the analyzer's "DD/Mon/YYYY HH:MM:SS" timestamp to epoch ms (NaN if unparseable).
+const TS_MONTHS = { Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11 };
+function parseTsMillis(ts) {
+  const m = (ts || "").match(/(\d+)\/(\w+)\/(\d+) (\d+):(\d+):(\d+)/);
+  if (!m) return NaN;
+  return new Date(+m[3], TS_MONTHS[m[2]] ?? 0, +m[1], +m[4], +m[5], +m[6]).getTime();
+}
+
+// Flatten every subject's messages/calls into one searchable list.
+function collectAllRecords() {
+  const out = [];
+  for (const id of subjectIds()) {
+    const s = STATE.subjects[id];
+    const add = (rec, isCall) => out.push({
+      sid: id, label: subjectLabel(id), target: s.target,
+      from: rec.from, to: rec.to, body: rec.body || "", ts: rec.ts, isCall,
+      dir: rec.from === s.target ? "out" : "in",
+      other: rec.from === s.target ? rec.to : rec.from,
+      ms: parseTsMillis(rec.ts),
+    });
+    s.msgs.forEach(r => add(r, false));
+    s.calls.forEach(r => add(r, true));
+  }
+  return out;
+}
+
+// Escape body, then wrap matches of `re` in <mark>. Matches on the raw string
+// (so indices are right) and escapes each slice.
+function highlightMatch(body, re) {
+  body = body || "";
+  if (!re) return escapeHtml(body);
+  const g = new RegExp(re.source, re.flags.replace("g", "") + "g");
+  let out = "", last = 0, m;
+  while ((m = g.exec(body)) !== null) {
+    if (m[0].length === 0) { g.lastIndex++; continue; }
+    out += escapeHtml(body.slice(last, m.index)) + "<mark>" + escapeHtml(m[0]) + "</mark>";
+    last = m.index + m[0].length;
+  }
+  return out + escapeHtml(body.slice(last));
+}
+
+function renderSearch() {
+  const q = $("#search-q").value.trim();
+  const useRe = $("#search-regex").checked;
+  const wantMsgs = $("#search-msgs").checked;
+  const wantCalls = $("#search-calls").checked;
+  const fromV = $("#search-from").value;
+  const toV = $("#search-to").value;
+  const fromMs = fromV ? new Date(fromV + "T00:00:00").getTime() : -Infinity;
+  const toMs = toV ? new Date(toV + "T23:59:59").getTime() : Infinity;
+
+  let re = null;
+  if (q) {
+    const src = useRe ? q : q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    try { re = new RegExp(src, "i"); }
+    catch (e) { $("#search-summary").innerHTML = `<span class="red">Invalid regex: ${escapeHtml(e.message)}</span>`; $("#search-results").innerHTML = ""; return; }
+  }
+
+  let recs = collectAllRecords().filter(r => {
+    if (r.isCall && !wantCalls) return false;
+    if (!r.isCall && !wantMsgs) return false;
+    if (fromV || toV) { if (Number.isNaN(r.ms) || r.ms < fromMs || r.ms > toMs) return false; }
+    if (re && !re.test(r.body)) return false;
+    return true;
+  });
+  recs.sort((a, b) => (a.ms || 0) - (b.ms || 0));
+
+  const total = recs.length;
+  const CAP = 500;
+  const shown = recs.slice(0, CAP);
+  const multiSubject = subjectIds().length > 1;
+
+  const parts = [];
+  if (q) parts.push(`"${escapeHtml(q)}"${useRe ? " (regex)" : ""}`);
+  if (fromV || toV) parts.push(`${fromV || "…"} → ${toV || "…"}`);
+  $("#search-summary").innerHTML = total === 0
+    ? `No matches${parts.length ? " for " + parts.join(", ") : ""}.`
+    : `${total.toLocaleString()} match${total === 1 ? "" : "es"}${parts.length ? " for " + parts.join(", ") : ""}${total > CAP ? ` — showing first ${CAP}` : ""}.`;
+
+  $("#search-results").innerHTML = shown.map(r => {
+    const dirCh = r.dir === "out" ? "→" : "←";
+    const tags = [];
+    if (r.isCall) tags.push(`<span class="tag call">call</span>`);
+    return `<div class="evidence-item search-row">
+      <span class="ts">${escapeHtml(r.ts)}</span>
+      <span class="dir ${r.dir}">${dirCh}</span>
+      ${multiSubject ? `<span class="subj" title="subject">${escapeHtml(r.label)}</span>` : ""}
+      <span class="who" data-number="${escapeHtml(r.other)}" data-sid="${escapeHtml(r.sid)}" title="Open contact ${escapeHtml(r.other)}">${escapeHtml(r.other)}</span>
+      <span class="body">${highlightMatch(r.body, re)}</span>
+      <span class="tags">${tags.join("")}</span>
+    </div>`;
+  }).join("");
+}
+
+// Trigger a client-side download of text content.
+function downloadText(text, filename, type) {
+  const blob = new Blob([text], { type: type || "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// Export one contact's full dossier (all interactions + per-message flags) as CSV.
+function exportDossier(num) {
+  const d = STATE.dossier[num];
+  const subj = activeSubjectObj();
+  if (!d || !subj) return;
+  const drugRe = buildDrugRegex(), gunRe = buildGunRegex(), csRe = buildCsRegex(), robRe = buildRobRegex();
+  const flagsFor = body => {
+    const f = [];
+    drugRe.lastIndex = 0; if (drugRe.test(body)) f.push("drug");
+    gunRe.lastIndex = 0;  if (gunRe.test(body))  f.push("gun");
+    csRe.lastIndex = 0;   if (csRe.test(body))   f.push("cs");
+    robRe.lastIndex = 0;  if (robRe.test(body))  f.push("rob");
+    if (LOC_RE.test(body)) f.push("loc");
+    return f.join("|");
+  };
+  const all = [
+    ...d.msgs.map(m => ({ ...m, type: "SMS" })),
+    ...d.calls.map(c => ({ ...c, type: "CALL" })),
+  ].sort((a, b) => parseTsMillis(a.ts) - parseTsMillis(b.ts));
+  const qf = v => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+  const lines = [];
+  lines.push(`# D6 dossier — contact ${num}`);
+  lines.push(`# Subject: ${subjectLabel(STATE.activeSubject)} (${subj.target})`);
+  lines.push(`# ${d.totalContacts} interactions · drug ${d.drugHits.length} · gun ${d.gunHits.length} · cs ${d.csHits.length} · rob ${d.robHits.length} · $refs ${d.moneyRefs.length} · locations ${d.locations.length} · score ${d.score}`);
+  lines.push("Timestamp,Direction,Type,From,To,Flags,Body");
+  for (const r of all) {
+    const dir = r.from === subj.target ? "out" : "in";
+    lines.push([qf(r.ts), qf(dir), qf(r.type), qf(r.from), qf(r.to), qf(flagsFor(r.body || "")), qf(r.body || "")].join(","));
+  }
+  downloadText(lines.join("\n") + "\n", `dossier_${subj.target}_${num}.csv`, "text/csv");
+}
+
+function renderContact(num) {
+  const d = STATE.dossier[num];
+  if (!d) {
+    $("#contact-content").innerHTML = `<div class="empty-state">Number ${escapeHtml(num)} not found.</div>`;
+    return;
+  }
+  // Combine all evidence rows
+  const all = [];
+  d.msgs.forEach(m => all.push({ ...m, _call: false }));
+  d.calls.forEach(c => all.push({ ...c, _call: true }));
+  // parse timestamp roughly: "30/Apr/2026 00:35:09"
+  function parseTs(ts) {
+    const m = ts.match(/(\d+)\/(\w+)\/(\d+) (\d+):(\d+):(\d+)/);
+    if (!m) return 0;
+    const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+    return new Date(+m[3], months[m[2]]||0, +m[1], +m[4], +m[5], +m[6]).getTime();
+  }
+  all.sort((a,b) => parseTs(a.ts) - parseTs(b.ts));
+
+  const drugRe = buildDrugRegex();
+  const gunRe = buildGunRegex();
+  const csRe  = buildCsRegex();
+  const robRe = buildRobRegex();
+
+  // Show flagged only by default? Let's show ALL but tag the flagged ones.
+  const items = all.map(r => {
+    const tags = [];
+    drugRe.lastIndex = 0; if (drugRe.test(r.body||"")) tags.push(`<span class="tag drug">drug</span>`);
+    gunRe.lastIndex = 0;  if (gunRe.test(r.body||""))  tags.push(`<span class="tag gun">gun</span>`);
+    csRe.lastIndex = 0;   if (csRe.test(r.body||""))   tags.push(`<span class="tag cs">cs</span>`);
+    robRe.lastIndex = 0;  if (robRe.test(r.body||""))  tags.push(`<span class="tag rob">rob</span>`);
+    if (LOC_RE.test(r.body||"")) tags.push(`<span class="tag loc">loc</span>`);
+    if (r._call) tags.push(`<span class="tag call">call</span>`);
+    const dirCh = r.from === STATE.target ? "→" : "←";
+    const dirCls = r.from === STATE.target ? "out" : "in";
+    return `<div class="evidence-item">
+      <span class="ts">${escapeHtml(r.ts)}</span>
+      <span class="dir ${dirCls}">${dirCh}</span>
+      <span class="body">${highlightBody(r.body||"")}</span>
+      <span class="tags">${tags.join("")}</span>
+    </div>`;
+  }).join("");
+
+  // location summary
+  const locStreets = {};
+  d.locations.forEach(l => locStreets[l.street] = (locStreets[l.street]||0)+1);
+  const locHtml = Object.entries(locStreets).sort((a,b)=>b[1]-a[1])
+    .map(([s,n])=>`<div><span class="k">${escapeHtml(s)}</span><span class="v">${n}×</span></div>`).join("");
+
+  // money refs distinct values
+  const moneySet = {};
+  d.moneyRefs.forEach(m => moneySet[m.value] = (moneySet[m.value]||0)+1);
+  const moneyHtml = Object.entries(moneySet).sort((a,b)=>b[1]-a[1]).slice(0,12)
+    .map(([v,n])=>`<div><span class="k">$${v}</span><span class="v">${n}×</span></div>`).join("");
+
+  // Filter buttons
+  const filterBar = `<div class="actions">
+    <button class="btn" data-filter="all">All (${all.length})</button>
+    <button class="btn" data-filter="drug">Drug (${d.drugHits.length})</button>
+    <button class="btn" data-filter="gun">Gun (${d.gunHits.length})</button>
+    <button class="btn" data-filter="cs">CS (${d.csHits.length})</button>
+    <button class="btn" data-filter="rob">Rob (${d.robHits.length})</button>
+    <button class="btn" data-filter="loc">Loc (${d.locations.length})</button>
+    <button class="btn" data-filter="out">Outbound</button>
+    <button class="btn" data-filter="in">Inbound</button>
+  </div>`;
+
+  $("#contact-content").innerHTML = `
+    ${STATE.excluded.has(num) ? `
+      <div class="excluded-banner">
+        <span>⚠ This number is on the ESW exclusion list — it will not appear in roster, overview, or memo by default.</span>
+        <button class="btn small" id="unexclude-this">Remove from list</button>
+      </div>` : ""}
+    <div class="contact-header">
+      <div>
+        <div class="num-display">${escapeHtml(num)}${tierBadge(d.tier)}</div>
+        <div class="subtitle">${d.totalContacts} interactions · ${d.msgs.length} SMS · ${d.calls.length} call segs · score ${d.score}</div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn" id="export-dossier">⭳ Export dossier</button>
+        ${!STATE.excluded.has(num) ? `<button class="btn" id="exclude-this">+ Add to ESW list</button>` : ""}
+        <button class="btn" id="back-roster">← Back to roster</button>
+      </div>
+    </div>
+    <div class="contact-grid">
+      <div>
+        ${filterBar}
+        <div class="evidence-list" id="evlist">${items}</div>
+      </div>
+      <div class="side-panel">
+        <div class="sub-card">
+          <h3>Location pins shared</h3>
+          <div class="kv">${locHtml || '<div class="muted">none</div>'}</div>
+        </div>
+        <div class="sub-card">
+          <h3>Numeric/money references</h3>
+          <div class="kv">${moneyHtml || '<div class="muted">none</div>'}</div>
+        </div>
+        <div class="sub-card">
+          <h3>Signal scoring</h3>
+          <div class="kv">
+            <div><span class="k">drug (${d.drugHits.length}×3 + ${d.explicitDrug}×2E)</span><span class="v">${d.drugScore}</span></div>
+            <div><span class="k">gun (${d.gunHits.length}×4 + ${d.explicitGun}×3E)</span><span class="v">${d.gunScore}</span></div>
+            <div><span class="k">cs (${d.csHits.length}×2)</span><span class="v" style="color:var(--purple)">${d.csScore}</span></div>
+            <div><span class="k">robbery (${d.robHits.length}×2)</span><span class="v" style="color:var(--cyan)">${d.robScore}</span></div>
+            <div><span class="k">$ refs ×1</span><span class="v">${d.moneyRefs.length}</span></div>
+            ${d.categoriesHit >= 3 ? `<div><span class="k">multi-category bonus</span><span class="v">+5</span></div>` : ""}
+            <div style="border-top:1px solid var(--border); margin-top:6px; padding-top:6px;"><span class="k">total score</span><span class="v amber">${d.score}</span></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  // wire filter
+  $$("#contact-content [data-filter]").forEach(b => {
+    b.onclick = () => {
+      const f = b.dataset.filter;
+      $$("#evlist .evidence-item").forEach(el => {
+        const tagsHtml = el.querySelector(".tags").innerHTML;
+        const dir = el.querySelector(".dir").classList.contains("out") ? "out" : "in";
+        let show = true;
+        if (f === "drug") show = tagsHtml.includes(">drug<");
+        if (f === "gun")  show = tagsHtml.includes(">gun<");
+        if (f === "cs")   show = tagsHtml.includes(">cs<");
+        if (f === "rob")  show = tagsHtml.includes(">rob<");
+        if (f === "loc")  show = tagsHtml.includes(">loc<");
+        if (f === "out")  show = dir === "out";
+        if (f === "in")   show = dir === "in";
+        el.style.display = show ? "" : "none";
+      });
+    };
+  });
+  $("#back-roster").onclick = () => switchTab("roster");
+  $("#export-dossier").onclick = () => exportDossier(num);
+  if ($("#exclude-this")) {
+    $("#exclude-this").onclick = () => {
+      STATE.excluded.add(num);
+      renderContact(num);
+    };
+  }
+  if ($("#unexclude-this")) {
+    $("#unexclude-this").onclick = () => {
+      STATE.excluded.delete(num);
+      renderContact(num);
+    };
+  }
+}
+
+function renderLocations() {
+  const streetMap = {};
+  for (const num in STATE.dossier) {
+    if (STATE.hideExcluded && STATE.excluded.has(num)) continue;
+    const d = STATE.dossier[num];
+    for (const loc of d.locations) {
+      if (!streetMap[loc.street]) streetMap[loc.street] = { count: 0, contacts: new Set() };
+      streetMap[loc.street].count++;
+      streetMap[loc.street].contacts.add(num);
+    }
+  }
+  const arr = Object.entries(streetMap).map(([s, v]) => ({
+    street: s, count: v.count, contacts: [...v.contacts]
+  })).sort((a,b) => b.contacts.length - a.contacts.length || b.count - a.count);
+
+  const maxContacts = Math.max(1, ...arr.map(a=>a.contacts.length));
+  $("#loc-list").innerHTML = arr.length
+    ? arr.map((a,i) => `
+      <div class="loc-item ${a.contacts.length >= maxContacts * 0.7 && i < 3 ? 'hub-primary' : ''}">
+        <span class="name">${escapeHtml(a.street)}</span>
+        <span class="count">${a.count} pins</span>
+        <span class="muted">${a.contacts.length} contacts</span>
+        <div class="bar-wrap"><div class="bar" style="width:${a.contacts.length/maxContacts*100}%"></div></div>
+      </div>`).join("")
+    : `<div class="empty-state">No location data parsed.</div>`;
+
+  // Trap references
+  const trapRe = /\b(trap|bando|stash|spot|crib)\b/i;
+  const trapByContact = {};
+  for (const m of STATE.msgs) {
+    if (trapRe.test(m.body || "")) {
+      const c = otherParty(m);
+      if (STATE.hideExcluded && STATE.excluded.has(c)) continue;
+      if (!trapByContact[c]) trapByContact[c] = [];
+      trapByContact[c].push(m);
+    }
+  }
+  const sorted = Object.entries(trapByContact).sort((a,b) => b[1].length - a[1].length).slice(0, 12);
+  $("#trap-refs").innerHTML = sorted.length
+    ? sorted.map(([c, refs]) => `
+      <div style="margin-bottom: 16px;">
+        <div style="font-family:IBM Plex Mono, monospace; font-size:12px; margin-bottom:6px;">
+          <span class="amber">${c}</span> <span class="muted">— ${refs.length} ref${refs.length>1?'s':''}</span>
+        </div>
+        ${refs.slice(0,5).map(r => `
+          <div class="evidence-item" style="grid-template-columns: 130px 24px 1fr;">
+            <span class="ts">${escapeHtml(r.ts)}</span>
+            <span class="dir ${r.from===STATE.target?'out':'in'}">${r.from===STATE.target?'→':'←'}</span>
+            <span class="body">${highlightBody(r.body)}</span>
+          </div>`).join("")}
+      </div>`).join("")
+    : `<div class="empty-state">No stash/trap references found.</div>`;
+}
+
+function renderGlossary() {
+  // Strip leading/trailing \b for display (word boundaries are visual noise).
+  // The underlying stored regex is unchanged — only the label is prettified.
+  function prettyTerm(t) {
+    let s = t;
+    if (s.startsWith("\\b")) s = s.slice(2);
+    if (s.endsWith("\\b"))   s = s.slice(0, -2);
+    return s;
+  }
+  // True if the term contains actual regex syntax beyond \b word boundaries
+  function hasRegexSyntax(t) {
+    const stripped = t.replace(/^\\b/, "").replace(/\\b$/, "");
+    return /[\\()\[\]{}|?+*^$.]/.test(stripped);
+  }
+  function listFor(arr) {
+    return arr.map((t, idx) => {
+      const pretty = prettyTerm(t);
+      const rxBadge = hasRegexSyntax(t)
+        ? '<span class="dim" style="font-size:9px; margin-left:6px;" title="regex pattern">·rx·</span>'
+        : '';
+      return `<li>
+        <span class="mono" title="raw: ${escapeHtml(t)}">${escapeHtml(pretty)}</span>${rxBadge}
+        <span class="remove" data-idx="${idx}">[remove]</span>
+      </li>`;
+    }).join("");
+  }
+  $("#drug-kw").innerHTML = listFor(STATE.drugTerms);
+  $("#gun-kw").innerHTML  = listFor(STATE.gunTerms);
+  $("#cs-kw").innerHTML   = listFor(STATE.csTerms);
+  $("#rob-kw").innerHTML  = listFor(STATE.robTerms);
+
+  $$("#drug-kw .remove").forEach(el => el.onclick = () => {
+    STATE.drugTerms.splice(+el.dataset.idx, 1); reanalyzeAll(); renderGlossary();
+  });
+  $$("#gun-kw .remove").forEach(el => el.onclick = () => {
+    STATE.gunTerms.splice(+el.dataset.idx, 1); reanalyzeAll(); renderGlossary();
+  });
+  $$("#cs-kw .remove").forEach(el => el.onclick = () => {
+    STATE.csTerms.splice(+el.dataset.idx, 1); reanalyzeAll(); renderGlossary();
+  });
+  $$("#rob-kw .remove").forEach(el => el.onclick = () => {
+    STATE.robTerms.splice(+el.dataset.idx, 1); reanalyzeAll(); renderGlossary();
+  });
+}
+
+// Smart-add: bare words like "fentanyl" get auto-wrapped \bfentanyl\b for
+// whole-word matching. Anything containing regex syntax is stored verbatim.
+function smartTerm(input) {
+  const s = input.trim();
+  if (!s) return null;
+  // If the input already has regex metacharacters, leave it alone
+  if (/[\\()\[\]{}|.?+*^$]/.test(s)) return s;
+  // Plain text — wrap with word boundaries for clean matching
+  return `\\b${s}\\b`;
+}
+
+function renderExcluded() {
+  const list = [...STATE.excluded];
+  $("#excl-count").textContent = list.length === 0
+    ? "0 numbers"
+    : `${list.length} number${list.length>1?'s':''}`;
+  $("#hide-excluded-toggle").checked = STATE.hideExcluded;
+
+  if (list.length === 0) {
+    $("#excluded-list").innerHTML = `<div class="empty-state">No numbers excluded yet. Paste a list above to start.</div>`;
+    return;
+  }
+  $("#excluded-list").innerHTML = list.map(num => {
+    const d = STATE.dossier[num];
+    const inData = !!d;
+    const stats = inData
+      ? `${d.totalContacts} interactions · ${d.drugHits.length} drug · ${d.gunHits.length} gun · score ${d.score}`
+      : `not present in current data`;
+    return `<div class="excluded-row ${inData ? '' : 'not-in-data'}">
+      <span class="num">${escapeHtml(num)}</span>
+      <span class="stats ${inData ? '' : 'missing'}">${stats}</span>
+      <button class="remove-x" data-num="${escapeHtml(num)}" title="Remove from list">×</button>
+    </div>`;
+  }).join("");
+  $$("#excluded-list .remove-x").forEach(btn => {
+    btn.onclick = () => {
+      STATE.excluded.delete(btn.dataset.num);
+      renderExcluded();
+    };
+  });
+}
+
+function renderNetwork() {
+  const ids = subjectIds();
+  if (!STATE.network) computeNetwork();
+  const net = STATE.network;
+
+  // Subject list
+  $("#subject-list").innerHTML = ids.map(id => {
+    const s = STATE.subjects[id];
+    const total = s.msgs.length + s.calls.length;
+    const drugN = Object.values(s.dossier).reduce((a,d)=>a+d.drugHits.length, 0);
+    const gunN  = Object.values(s.dossier).reduce((a,d)=>a+d.gunHits.length, 0);
+    const csN   = Object.values(s.dossier).reduce((a,d)=>a+d.csHits.length, 0);
+    const robN  = Object.values(s.dossier).reduce((a,d)=>a+d.robHits.length, 0);
+    return `<div class="subject-row ${id === STATE.activeSubject ? 'is-active' : ''}" data-id="${escapeHtml(id)}">
+      <span class="marker">${id === STATE.activeSubject ? '●' : '○'}</span>
+      <div>
+        <input type="text" class="label-input" data-id="${escapeHtml(id)}" placeholder="(optional label — e.g. 'Manuel R.')" value="${escapeHtml(s.label || '')}">
+        <div class="info">
+          <span class="target">${escapeHtml(s.target)}</span>
+          <span class="meta">  ·  ${escapeHtml(s.filename)} · ${total.toLocaleString()} records · drug ${drugN} · gun ${gunN} · cs ${csN} · rob ${robN}</span>
+        </div>
+      </div>
+      <button class="btn small set-active" data-id="${escapeHtml(id)}">${id === STATE.activeSubject ? 'Active' : 'Set active'}</button>
+      <button class="btn small remove-subject" data-id="${escapeHtml(id)}">Remove</button>
+    </div>`;
+  }).join("");
+
+  // Direct connections
+  if (net.directConnections.length === 0) {
+    $("#direct-list").innerHTML = `<div class="empty-state">No direct subject-to-subject communication detected.</div>`;
+  } else {
+    $("#direct-list").innerHTML = net.directConnections.map(dc => {
+      const sa = STATE.subjects[dc.a], sb = STATE.subjects[dc.b];
+      return `<div class="direct-row">
+        <div class="endpoint">
+          <div><span class="label">${escapeHtml(subjectLabel(dc.a))}</span></div>
+          <div class="stats">${escapeHtml(sa.target)} · ${dc.msgsA} msgs / ${dc.callsA} calls to ${escapeHtml(subjectLabel(dc.b))} · score ${dc.scoreA}</div>
+        </div>
+        <div class="arrow">⇄</div>
+        <div class="endpoint">
+          <div><span class="label">${escapeHtml(subjectLabel(dc.b))}</span></div>
+          <div class="stats">${escapeHtml(sb.target)} · ${dc.msgsB} msgs / ${dc.callsB} calls to ${escapeHtml(subjectLabel(dc.a))} · score ${dc.scoreB}</div>
+        </div>
+        <div class="muted mono" style="font-size:11px;">combined ${dc.combinedScore}</div>
+      </div>`;
+    }).join("");
+  }
+
+  // Mutual contacts table
+  const search = $("#mutual-search").value.trim().toLowerCase();
+  const filtered = search ? net.mutual.filter(c => c.number.toLowerCase().includes(search)) : net.mutual;
+  if (filtered.length === 0) {
+    $("#mutual-tbl tbody").innerHTML = `<tr><td colspan="8" class="muted" style="text-align:center;padding:20px;">${search ? 'No matches.' : 'No mutual contacts — load 2+ subjects to see overlapping numbers.'}</td></tr>`;
+  } else {
+    $("#mutual-tbl tbody").innerHTML = filtered.map(c => {
+      const chips = Object.entries(c.subjects).map(([sid, entry]) => {
+        const score = entry.score;
+        const cats = [];
+        if (entry.drugHits.length) cats.push(`d${entry.drugHits.length}`);
+        if (entry.gunHits.length)  cats.push(`g${entry.gunHits.length}`);
+        if (entry.csHits.length)   cats.push(`c${entry.csHits.length}`);
+        if (entry.robHits.length)  cats.push(`r${entry.robHits.length}`);
+        return `<span class="chip"><span class="lbl">${escapeHtml(subjectLabel(sid))}</span><span class="num">${cats.join(" ")} · score ${score}</span></span>`;
+      }).join("");
+      return `<tr data-number="${escapeHtml(c.number)}">
+        <td>${escapeHtml(c.number)}${STATE.excluded.has(c.number) ? ' <span class="tier-badge" style="color:var(--text-dim); border-color:var(--border-strong);">ESW</span>' : ''}</td>
+        <td class="num amber">${c.subjectCount}</td>
+        <td class="num">${c.totalDrug}</td>
+        <td class="num">${c.totalGun}</td>
+        <td class="num" style="color:${c.totalCs?'var(--purple)':'inherit'}">${c.totalCs}</td>
+        <td class="num" style="color:${c.totalRob?'var(--cyan)':'inherit'}">${c.totalRob}</td>
+        <td class="num">${c.totalScore}</td>
+        <td><div class="mutual-breakdown">${chips}</div></td>
+      </tr>`;
+    }).join("");
+  }
+
+  // Wire subject-row events
+  $$("#subject-list .set-active").forEach(btn => btn.onclick = e => {
+    e.stopPropagation();
+    STATE.activeSubject = btn.dataset.id;
+    refreshHeader();
+    renderNetwork();
+  });
+  $$("#subject-list .remove-subject").forEach(btn => btn.onclick = e => {
+    e.stopPropagation();
+    const id = btn.dataset.id;
+    if (!confirm(`Remove ${subjectLabel(id)} from this session? (Reloadable via Load tab.)`)) return;
+    delete STATE.subjects[id];
+    const remaining = subjectIds();
+    if (STATE.activeSubject === id) STATE.activeSubject = remaining[0] || null;
+    computeNetwork();
+    refreshHeader();
+    if (remaining.length === 0) {
+      $$("nav.tabs button").forEach(b => { if (b.dataset.tab !== "load") b.disabled = true; });
+      switchTab("load");
+    } else {
+      renderNetwork();
+    }
+  });
+  $$("#subject-list .label-input").forEach(inp => {
+    inp.onchange = () => {
+      const s = STATE.subjects[inp.dataset.id];
+      if (s) s.label = inp.value.trim() || null;
+      refreshHeader();
+    };
+  });
+  $("#add-more-files").onclick = () => $("#file-input").click();
+}
+
+// Cross-subject contact view — aggregates evidence about one contact across
+// every loaded subject's logs. Routed to from clicks in the mutual-contacts
+// table on the Network tab.
+function renderCrossSubjectContact(num) {
+  const containing = subjectIds()
+    .map(sid => ({ sid, sub: STATE.subjects[sid], entry: STATE.subjects[sid].dossier[num] }))
+    .filter(x => x.entry);
+
+  if (containing.length === 0) {
+    $("#contact-content").innerHTML = `<div class="empty-state">Number ${escapeHtml(num)} not found in any loaded subject.</div>`;
+    return;
+  }
+
+  // Only one subject has this contact — switch to it and use the normal view
+  if (containing.length === 1) {
+    if (STATE.activeSubject !== containing[0].sid) {
+      STATE.activeSubject = containing[0].sid;
+      refreshHeader();
+    }
+    renderContact(num);
+    return;
+  }
+
+  // Aggregate stats and evidence across all containing subjects
+  const totals = { msgs: 0, calls: 0, drug: 0, gun: 0, cs: 0, rob: 0, score: 0 };
+  const allEvidence = [];
+  for (const { sid, sub, entry } of containing) {
+    totals.msgs += entry.msgs.length;
+    totals.calls += entry.calls.length;
+    totals.drug  += entry.drugHits.length;
+    totals.gun   += entry.gunHits.length;
+    totals.cs    += entry.csHits.length;
+    totals.rob   += entry.robHits.length;
+    totals.score += entry.score;
+    entry.msgs.forEach(m => allEvidence.push({ ...m, _call: false, _sid: sid, _subjectTarget: sub.target }));
+    entry.calls.forEach(c => allEvidence.push({ ...c, _call: true,  _sid: sid, _subjectTarget: sub.target }));
+  }
+
+  function parseTs(ts) {
+    const m = ts.match(/(\d+)\/(\w+)\/(\d+) (\d+):(\d+):(\d+)/);
+    if (!m) return 0;
+    const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+    return new Date(+m[3], months[m[2]]||0, +m[1], +m[4], +m[5], +m[6]).getTime();
+  }
+  allEvidence.sort((a, b) => parseTs(a.ts) - parseTs(b.ts));
+
+  const drugRe = buildDrugRegex();
+  const gunRe  = buildGunRegex();
+  const csRe   = buildCsRegex();
+  const robRe  = buildRobRegex();
+
+  const items = allEvidence.map(r => {
+    const tags = [];
+    drugRe.lastIndex = 0; if (drugRe.test(r.body||"")) tags.push(`<span class="tag drug">drug</span>`);
+    gunRe.lastIndex = 0;  if (gunRe.test(r.body||""))  tags.push(`<span class="tag gun">gun</span>`);
+    csRe.lastIndex = 0;   if (csRe.test(r.body||""))   tags.push(`<span class="tag cs">cs</span>`);
+    robRe.lastIndex = 0;  if (robRe.test(r.body||""))  tags.push(`<span class="tag rob">rob</span>`);
+    if (LOC_RE.test(r.body||"")) tags.push(`<span class="tag loc">loc</span>`);
+    if (r._call) tags.push(`<span class="tag call">call</span>`);
+    // Direction is relative to that subject's target
+    const dirCh = r.from === r._subjectTarget ? "→" : "←";
+    const dirCls = r.from === r._subjectTarget ? "out" : "in";
+    return `<div class="evidence-item cs-row" data-sid="${escapeHtml(r._sid)}" style="grid-template-columns: 130px 110px 24px 1fr auto;">
+      <span class="ts">${escapeHtml(r.ts)}</span>
+      <span class="amber mono" style="font-size: 10.5px; letter-spacing: 0.5px;">${escapeHtml(subjectLabel(r._sid))}</span>
+      <span class="dir ${dirCls}">${dirCh}</span>
+      <span class="body">${highlightBody(r.body||"")}</span>
+      <span class="tags">${tags.join("")}</span>
+    </div>`;
+  }).join("");
+
+  // Per-subject breakdown cards
+  const perSubject = containing.map(({ sid, sub, entry }) => `
+    <div class="sub-card">
+      <h3>${escapeHtml(subjectLabel(sid))} <span class="dim" style="font-size:10px;">· ${escapeHtml(sub.target)}</span></h3>
+      <div class="kv">
+        <div><span class="k">interactions</span><span class="v">${entry.totalContacts}</span></div>
+        <div><span class="k">drug · gun · cs · rob</span><span class="v">${entry.drugHits.length} · ${entry.gunHits.length} · ${entry.csHits.length} · ${entry.robHits.length}</span></div>
+        <div><span class="k">$ refs · locations</span><span class="v">${entry.moneyRefs.length} · ${entry.locations.length}</span></div>
+        <div style="border-top:1px solid var(--border); margin-top:6px; padding-top:6px;"><span class="k">score</span><span class="v amber">${entry.score}</span></div>
+      </div>
+    </div>
+  `).join("");
+
+  // Per-subject filter buttons
+  const subjectFilters = containing.map(({ sid, entry }) =>
+    `<button class="btn" data-cs-filter="${escapeHtml(sid)}">${escapeHtml(subjectLabel(sid))} (${entry.totalContacts})</button>`
+  ).join("");
+
+  // Category filter counts (across all subjects)
+  const drugTotal = allEvidence.filter(r => { drugRe.lastIndex = 0; return drugRe.test(r.body||""); }).length;
+  const gunTotal  = allEvidence.filter(r => { gunRe.lastIndex = 0; return gunRe.test(r.body||""); }).length;
+  const csTotal   = allEvidence.filter(r => { csRe.lastIndex = 0; return csRe.test(r.body||""); }).length;
+  const robTotal  = allEvidence.filter(r => { robRe.lastIndex = 0; return robRe.test(r.body||""); }).length;
+
+  $("#contact-content").innerHTML = `
+    <div class="excluded-banner" style="background: rgba(232,160,28,0.06); border-color: var(--amber);">
+      <span>NETWORK BRIDGE &mdash; ${escapeHtml(num)} appears in <strong>${containing.length}</strong> loaded subjects' logs</span>
+      <button class="btn small" id="back-network">&larr; Back to network</button>
+    </div>
+    <div class="contact-header">
+      <div>
+        <div class="num-display">${escapeHtml(num)}${STATE.excluded.has(num) ? ' <span class="tier-badge" style="color:var(--text-dim); border-color:var(--border-strong);">ESW</span>' : ''}</div>
+        <div class="subtitle">${totals.msgs + totals.calls} interactions across ${containing.length} subjects &middot; combined score ${totals.score}</div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        ${!STATE.excluded.has(num) ? `<button class="btn" id="exclude-this-cs">+ Add to ESW list</button>` : `<button class="btn" id="unexclude-this-cs">Remove from ESW list</button>`}
+      </div>
+    </div>
+    <div class="contact-grid">
+      <div>
+        <div class="actions" style="margin-bottom:8px;">
+          <button class="btn" data-cs-filter="all">All (${allEvidence.length})</button>
+          ${subjectFilters}
+        </div>
+        <div class="actions" style="margin-bottom:14px;">
+          <button class="btn" data-cs-cat="drug">Drug (${drugTotal})</button>
+          <button class="btn" data-cs-cat="gun">Gun (${gunTotal})</button>
+          <button class="btn" data-cs-cat="cs">CS (${csTotal})</button>
+          <button class="btn" data-cs-cat="rob">Rob (${robTotal})</button>
+          <button class="btn" data-cs-cat="clear">Clear cat filter</button>
+        </div>
+        <div class="evidence-list" id="evlist">${items}</div>
+      </div>
+      <div class="side-panel">
+        <div class="sub-card">
+          <h3>Combined across all subjects</h3>
+          <div class="kv">
+            <div><span class="k">total interactions</span><span class="v">${totals.msgs + totals.calls}</span></div>
+            <div><span class="k">drug hits</span><span class="v">${totals.drug}</span></div>
+            <div><span class="k">gun hits</span><span class="v" style="color:var(--red)">${totals.gun}</span></div>
+            <div><span class="k">cs hits</span><span class="v" style="color:var(--purple)">${totals.cs}</span></div>
+            <div><span class="k">rob hits</span><span class="v" style="color:var(--cyan)">${totals.rob}</span></div>
+            <div style="border-top:1px solid var(--border); margin-top:6px; padding-top:6px;"><span class="k">combined score</span><span class="v amber">${totals.score}</span></div>
+          </div>
+        </div>
+        ${perSubject}
+      </div>
+    </div>`;
+
+  // Wire subject filter buttons (filter by which subject's log the line came from)
+  $$("[data-cs-filter]").forEach(b => {
+    b.onclick = () => {
+      const f = b.dataset.csFilter;
+      $$("#evlist .cs-row").forEach(el => {
+        el.dataset._sFiltered = (f === "all" || el.dataset.sid === f) ? "0" : "1";
+        applyCsFilters(el);
+      });
+    };
+  });
+  // Category filter
+  $$("[data-cs-cat]").forEach(b => {
+    b.onclick = () => {
+      const f = b.dataset.csCat;
+      $$("#evlist .cs-row").forEach(el => {
+        if (f === "clear") {
+          delete el.dataset._cFiltered;
+        } else {
+          const tagsHtml = el.querySelector(".tags").innerHTML;
+          const match = tagsHtml.includes(`>${f}<`);
+          el.dataset._cFiltered = match ? "0" : "1";
+        }
+        applyCsFilters(el);
+      });
+    };
+  });
+  function applyCsFilters(el) {
+    const s = el.dataset._sFiltered === "1";
+    const c = el.dataset._cFiltered === "1";
+    el.style.display = (s || c) ? "none" : "";
+  }
+
+  $("#back-network").onclick = () => switchTab("network");
+  if ($("#exclude-this-cs")) {
+    $("#exclude-this-cs").onclick = () => { STATE.excluded.add(num); renderCrossSubjectContact(num); };
+  }
+  if ($("#unexclude-this-cs")) {
+    $("#unexclude-this-cs").onclick = () => { STATE.excluded.delete(num); renderCrossSubjectContact(num); };
+  }
+}
+
+// ===== BUGS RENDERING =====
+let BUG_VIEW = { type: null, key: null };   // type: 'bug' | 'property'
+
+function highlightBugBody(body) {
+  const xlated = isTranslated(body);
+  let clean = cleanUtterance(body).replace(/^\[(Spanish|Language|Translated)\]\s*/i, "");
+  // tokenized highlight (same collision-proof approach as highlightBody)
+  let safe = escapeHtml(clean);
+  const tokens = [];
+  function tok(re, cls) {
+    safe = safe.replace(re, m => { const i = tokens.length; tokens.push({cls, text:m}); return `\x01\x02${i}\x03`; });
+  }
+  tok(buildGunRegex(), "gun");
+  tok(buildCsRegex(), "cs");
+  tok(buildRobRegex(), "rob");
+  tok(buildDrugRegex(), "drug");
+  safe = safe.replace(/\x01\x02(\d+)\x03/g, (m,i) => {
+    const t = tokens[+i];
+    return t.cls === "drug" ? `<mark>${t.text}</mark>` : `<mark class="${t.cls}">${t.text}</mark>`;
+  });
+  return (xlated ? `<span class="xlated">[ES→EN]</span>` : "") + safe;
+}
+
+function renderBugs() {
+  const bIds = bugIds();
+  // Group by property
+  const properties = {};
+  for (const id of bIds) {
+    const key = bugPropertyKey(STATE.bugs[id].bugName);
+    (properties[key] = properties[key] || []).push(id);
+  }
+
+  // Build the device + property list
+  let listHtml = "";
+  for (const propKey in properties) {
+    const devs = properties[propKey];
+    if (devs.length > 1) {
+      // Property header row (merged view) + dedup count
+      const merged = mergedPropertyUtterances(propKey);
+      const isActive = BUG_VIEW.type === "property" && BUG_VIEW.key === propKey;
+      listHtml += `<div class="bug-row property-row ${isActive?'is-active':''}" data-bugview="property" data-key="${escapeHtml(propKey)}">
+        <div>
+          <div class="name">${escapeHtml(propKey)} — merged (${devs.length} devices)</div>
+          <div class="meta">${merged.length.toLocaleString()} unique utterances after dedup · ${devs.map(d=>escapeHtml(STATE.bugs[d].bugName)).join(", ")}</div>
+        </div>
+        <div></div>
+        <button class="btn small view-bug" data-bugview="property" data-key="${escapeHtml(propKey)}">${isActive?'Viewing':'View merged'}</button>
+      </div>`;
+    }
+    for (const id of devs) {
+      const bug = STATE.bugs[id];
+      const a = bug.analysis || {};
+      const isActive = BUG_VIEW.type === "bug" && BUG_VIEW.key === id;
+      listHtml += `<div class="bug-row ${isActive?'is-active':''}" data-bugview="bug" data-key="${escapeHtml(id)}">
+        <div>
+          <div class="name">${escapeHtml(bug.bugName)} <span class="dim" style="font-size:10px;">· ID ${escapeHtml(bug.bugId)}</span></div>
+          <div class="meta">${bug.utterances.length.toLocaleString()} utterances · ${escapeHtml(bug.filename)}</div>
+        </div>
+        <div class="sigs">
+          <span class="s-drug">drug ${a.drug||0}</span>
+          <span class="s-gun">gun ${a.gun||0}</span>
+          <span class="s-cs">cs ${a.cs||0}</span>
+          <span class="s-rob">rob ${a.rob||0}</span>
+        </div>
+        <button class="btn small view-bug" data-bugview="bug" data-key="${escapeHtml(id)}">${isActive?'Viewing':'View'}</button>
+      </div>`;
+    }
+  }
+  $("#bug-list").innerHTML = listHtml || `<div class="empty-state">No bugs loaded.</div>`;
+
+  // Auto-select something if nothing selected
+  if (!BUG_VIEW.type && bIds.length) {
+    // Prefer a merged property if one exists, else first device
+    const multiProp = Object.keys(properties).find(k => properties[k].length > 1);
+    if (multiProp) BUG_VIEW = { type: "property", key: multiProp };
+    else BUG_VIEW = { type: "bug", key: bIds[0] };
+  }
+
+  renderBugDetail();
+
+  // Wire row clicks
+  $$("#bug-list .view-bug, #bug-list .bug-row").forEach(el => {
+    el.onclick = () => {
+      BUG_VIEW = { type: el.dataset.bugview, key: el.dataset.key };
+      renderBugs();
+    };
+  });
+  $("#add-more-bug-files").onclick = () => $("#file-input").click();
+}
+
+function renderBugDetail() {
+  if (!BUG_VIEW.type) { $("#bug-detail-wrap").innerHTML = `<div class="empty-state">Select a device above.</div>`; return; }
+
+  let utterances, title, subtitle, names, locations, sig;
+  if (BUG_VIEW.type === "property") {
+    utterances = mergedPropertyUtterances(BUG_VIEW.key);
+    title = BUG_VIEW.key + " (merged property)";
+    subtitle = `${utterances.length.toLocaleString()} unique utterances across all devices`;
+    names = extractNames(utterances);
+    locations = extractLocations(utterances);
+    sig = computeBugSignal(utterances);
+  } else {
+    const bug = STATE.bugs[BUG_VIEW.key];
+    if (!bug) { $("#bug-detail-wrap").innerHTML = `<div class="empty-state">Device not found.</div>`; return; }
+    utterances = [...bug.utterances].sort((a,b)=>bugParseTs(a.ts)-bugParseTs(b.ts));
+    title = bug.bugName;
+    subtitle = `Device ID ${bug.bugId} · ${utterances.length.toLocaleString()} utterances`;
+    names = bug.analysis.names;
+    locations = bug.analysis.locations;
+    sig = bug.analysis;
+  }
+
+  // Flagged utterances
+  const drugRe = buildDrugRegex(), gunRe = buildGunRegex(), csRe = buildCsRegex(), robRe = buildRobRegex();
+  function tagsFor(body) {
+    const t = [];
+    drugRe.lastIndex=0; if (drugRe.test(body)) t.push("drug");
+    gunRe.lastIndex=0;  if (gunRe.test(body))  t.push("gun");
+    csRe.lastIndex=0;   if (csRe.test(body))   t.push("cs");
+    robRe.lastIndex=0;  if (robRe.test(body))  t.push("rob");
+    return t;
+  }
+  const lines = utterances.map(u => {
+    const tags = tagsFor(u.body || "");
+    const tagHtml = tags.map(t => `<span class="tag ${t}">${t}</span>`).join("");
+    const devHint = u.devices && u.devices.size > 1 ? `<span class="dim" style="font-size:9px;"> ·${u.devices.size}dev</span>` : "";
+    return `<div class="bug-line" data-flagged="${tags.length?1:0}" data-tags="${tags.join(',')}">
+      <span class="ts">${escapeHtml(u.ts)}${devHint}</span>
+      <span class="body">${highlightBugBody(u.body || "")}</span>
+      <span class="tags">${tagHtml}</span>
+    </div>`;
+  }).join("");
+
+  const namesHtml = names.length
+    ? names.slice(0, 40).map(([n,c]) => `<span class="m name"><span class="t">${escapeHtml(n)}</span><span class="c">${c}</span></span>`).join("")
+    : `<span class="muted">none detected</span>`;
+  const locsHtml = locations.length
+    ? locations.slice(0, 30).map(([n,c]) => `<span class="m loc"><span class="t">${escapeHtml(n)}</span><span class="c">${c}</span></span>`).join("")
+    : `<span class="muted">none detected</span>`;
+
+  $("#bug-detail-wrap").innerHTML = `
+    <div class="card">
+      <h2>${escapeHtml(title)}</h2>
+      <div class="subtitle mono" style="color:var(--text-muted); font-size:12px; margin-bottom:16px;">${escapeHtml(subtitle)} · score ${sig.score}</div>
+      <div class="stats-grid" style="margin-bottom:18px;">
+        <div class="stat"><div class="label">Drug hits</div><div class="value amber">${sig.drug}</div></div>
+        <div class="stat"><div class="label">Gun hits</div><div class="value red">${sig.gun}</div></div>
+        <div class="stat"><div class="label">CS hits</div><div class="value purple">${sig.cs}</div></div>
+        <div class="stat"><div class="label">Robbery hits</div><div class="value cyan">${sig.rob}</div></div>
+        <div class="stat"><div class="label">Flagged lines</div><div class="value">${sig.flaggedCount != null ? sig.flaggedCount : (sig.drug+sig.gun+sig.cs+sig.rob)}</div></div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:18px;">
+        <div class="sub-card">
+          <h3>People mentioned</h3>
+          <div class="mention-cloud">${namesHtml}</div>
+        </div>
+        <div class="sub-card">
+          <h3>Locations mentioned</h3>
+          <div class="mention-cloud">${locsHtml}</div>
+        </div>
+      </div>
+
+      <div class="actions" style="margin-bottom:12px;">
+        <button class="btn" data-bug-filter="flagged">Flagged only</button>
+        <button class="btn" data-bug-filter="all">Full transcript (${utterances.length})</button>
+        <button class="btn" data-bug-cat="drug">Drug</button>
+        <button class="btn" data-bug-cat="gun">Gun</button>
+        <button class="btn" data-bug-cat="cs">CS</button>
+        <button class="btn" data-bug-cat="rob">Rob</button>
+      </div>
+      <div class="bug-transcript" id="bug-transcript">${lines}</div>
+    </div>`;
+
+  // Default to flagged-only view
+  applyBugFilter("flagged", null);
+
+  $$("#bug-detail-wrap [data-bug-filter]").forEach(b => b.onclick = () => applyBugFilter(b.dataset.bugFilter, null));
+  $$("#bug-detail-wrap [data-bug-cat]").forEach(b => b.onclick = () => applyBugFilter("flagged", b.dataset.bugCat));
+}
+
+function applyBugFilter(mode, cat) {
+  $$("#bug-transcript .bug-line").forEach(el => {
+    const flagged = el.dataset.flagged === "1";
+    const tags = (el.dataset.tags || "").split(",");
+    let show;
+    if (mode === "all") show = true;
+    else show = flagged;             // flagged-only
+    if (show && cat) show = tags.includes(cat);
+    el.style.display = show ? "" : "none";
+  });
+}
+
+function computeBugSignal(utterances) {
+  const drugRe = buildDrugRegex(), gunRe = buildGunRegex(), csRe = buildCsRegex(), robRe = buildRobRegex();
+  let drug=0,gun=0,cs=0,rob=0,explicitDrug=0,explicitGun=0,flaggedCount=0;
+  for (const u of utterances) {
+    const body = u.body || ""; let f=false;
+    drugRe.lastIndex=0; if (drugRe.test(body)) { drug++; f=true; if (EXPLICIT_DRUG.test(body)) explicitDrug++; }
+    gunRe.lastIndex=0;  if (gunRe.test(body))  { gun++;  f=true; if (EXPLICIT_GUN.test(body)) explicitGun++; }
+    csRe.lastIndex=0;   if (csRe.test(body))   { cs++;   f=true; }
+    robRe.lastIndex=0;  if (robRe.test(body))  { rob++;  f=true; }
+    if (f) flaggedCount++;
+  }
+  const score = drug*3 + explicitDrug*2 + gun*4 + explicitGun*3 + cs*2 + rob*2;
+  return { drug, gun, cs, rob, explicitDrug, explicitGun, score, flaggedCount };
+}
+
+function renderMemo() {
+  $("#memo-output").textContent = generateMemo();
+}
+
+// ========= MEMO GENERATION =========
+function generateMemo() {
+  const contacts = activeContacts();
+  const excludedInData = Object.values(STATE.dossier).filter(d => STATE.excluded.has(d.number));
+  const t1 = contacts.filter(d => d.tier === 1).sort((a,b) => b.score - a.score);
+  const t2 = contacts.filter(d => d.tier === 2).sort((a,b) => b.score - a.score);
+  const t3 = contacts.filter(d => d.tier === 3).sort((a,b) => b.score - a.score);
+
+  const totalDrug = contacts.reduce((s,d)=>s+d.drugHits.length,0);
+  const totalGun  = contacts.reduce((s,d)=>s+d.gunHits.length,0);
+  const totalCs   = contacts.reduce((s,d)=>s+d.csHits.length,0);
+  const totalRob  = contacts.reduce((s,d)=>s+d.robHits.length,0);
+
+  // top streets — filter excluded
+  const streetMap = {};
+  for (const num in STATE.dossier) {
+    if (STATE.excluded.has(num)) continue;
+    for (const loc of STATE.dossier[num].locations) {
+      if (!streetMap[loc.street]) streetMap[loc.street] = new Set();
+      streetMap[loc.street].add(num);
+    }
+  }
+  const topStreets = Object.entries(streetMap)
+    .map(([s, set]) => ({ s, n: set.size }))
+    .sort((a,b) => b.n - a.n).slice(0, 8);
+
+  let out = "";
+  out += `# Intel Memo — Subject Phone ${STATE.target}\n\n`;
+  // Multi-subject context
+  const otherSubjects = subjectIds().filter(id => id !== STATE.activeSubject);
+  if (otherSubjects.length > 0) {
+    out += `**Case context:** This is one of ${subjectIds().length} subjects under active surveillance in the current case.\n`;
+    // Direct connections involving this subject
+    const directHere = (STATE.network?.directConnections || []).filter(dc =>
+      dc.a === STATE.activeSubject || dc.b === STATE.activeSubject
+    );
+    if (directHere.length) {
+      out += `**Direct comms with other loaded subjects:**\n`;
+      directHere.forEach(dc => {
+        const otherId = dc.a === STATE.activeSubject ? dc.b : dc.a;
+        const otherSub = STATE.subjects[otherId];
+        const here = STATE.subjects[STATE.activeSubject].dossier[otherSub.target];
+        out += `- **${subjectLabel(otherId)}** (${otherSub.target}) — ${here.msgs.length} SMS, ${here.calls.length} call segments, dossier score ${here.score}\n`;
+      });
+      out += `\n`;
+    }
+  }
+  out += `**Source:** Call/SMS extract${STATE.exportDate ? ", export " + STATE.exportDate : ""}\n`;
+  out += `**Volume:** ${STATE.msgs.length} SMS records · ${STATE.calls.length} call segments · ${contacts.length} unique correspondents (active)\n`;
+  if (excludedInData.length) {
+    out += `**Excluded from this memo:** ${excludedInData.length} number${excludedInData.length>1?'s':''} already covered by existing ESW (${excludedInData.map(d=>d.number).join(", ")})\n`;
+  }
+  out += `**Signal totals:** ${totalDrug} narcotics · ${totalGun} firearms/violence · ${totalCs} counter-surveillance · ${totalRob} robbery/lick\n\n`;
+  out += `---\n\n## Probable-cause candidates by tier\n\n`;
+
+  function sectionFor(label, list) {
+    if (list.length === 0) return "";
+    let s = `### ${label}\n\n`;
+    for (const d of list.slice(0, 8)) {
+      const cats = [];
+      if (d.drugHits.length) cats.push(`drug:${d.drugHits.length}${d.explicitDrug?`(${d.explicitDrug}E)`:''}`);
+      if (d.gunHits.length)  cats.push(`gun:${d.gunHits.length}${d.explicitGun?`(${d.explicitGun}E)`:''}`);
+      if (d.csHits.length)   cats.push(`cs:${d.csHits.length}`);
+      if (d.robHits.length)  cats.push(`rob:${d.robHits.length}`);
+      s += `#### ${d.number}  (msgs ${d.msgs.length} · calls ${d.calls.length} · score ${d.score}${d.categoriesHit>=3?' · **MULTI-CATEGORY**':''})\n`;
+      s += `*Hits:* ${cats.join(" · ")}\n\n`;
+
+      // Best evidence — prioritize explicit drug/gun, then by quantity context
+      const ev = [];
+      const drugSamples = [...d.drugHits]
+        .sort((a,b) => {
+          const aExp = EXPLICIT_DRUG.test(a.body || "") ? 100 : 0;
+          const bExp = EXPLICIT_DRUG.test(b.body || "") ? 100 : 0;
+          const aNum = (a.body.match(/\d{2,}/g)?.length || 0);
+          const bNum = (b.body.match(/\d{2,}/g)?.length || 0);
+          return (bExp + bNum) - (aExp + aNum);
+        })
+        .slice(0, 5);
+      drugSamples.forEach(h => ev.push(["drug", h]));
+      d.gunHits.slice(0, 3).forEach(h => ev.push(["gun", h]));
+      d.csHits.slice(0, 2).forEach(h => ev.push(["cs", h]));
+      d.robHits.slice(0, 2).forEach(h => ev.push(["rob", h]));
+      if (ev.length) {
+        s += `| Time | Dir | Cat | Verbatim |\n|---|---|---|---|\n`;
+        ev.forEach(([kind, h]) => {
+          const arrow = h.from === STATE.target ? "→" : "←";
+          const body = (h.body || "").replace(/\|/g, "\\|").replace(/\n/g, " ");
+          s += `| ${h.ts} | ${arrow}${h._call?" call":""} | ${kind} | ${body} |\n`;
+        });
+        s += `\n`;
+      }
+      const lstreets = {};
+      d.locations.forEach(l => lstreets[l.street] = (lstreets[l.street]||0)+1);
+      const lstr = Object.entries(lstreets).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([s,n])=>`${s} (${n}×)`).join(", ");
+      if (lstr) s += `**Meet locations:** ${lstr}\n\n`;
+      const distinctMoney = [...new Set(d.moneyRefs.map(m => m.value))].sort((a,b)=>a-b);
+      if (distinctMoney.length) s += `**Quantities mentioned:** ${distinctMoney.slice(0, 12).map(v=>'$'+v).join(", ")}\n\n`;
+    }
+    return s;
+  }
+
+  out += sectionFor("TIER 1 — Strongest probable cause", t1);
+  out += sectionFor("TIER 2 — Strong probable cause", t2);
+  out += sectionFor("TIER 3 — Investigative interest", t3);
+
+  // Counter-surveillance section — separate because it's a different angle
+  const topCs = contacts.filter(d => d.csHits.length >= 2).sort((a,b) => b.csHits.length - a.csHits.length).slice(0, 6);
+  if (topCs.length) {
+    out += `---\n\n## Counter-surveillance / LE-aware indicators\n\nNumbers showing operational security awareness (cops, jura, ditch evidence, phone burnt, etc.). Useful for affidavit context and officer-safety justification.\n\n`;
+    topCs.forEach(d => {
+      out += `**${d.number}** — ${d.csHits.length} CS hit${d.csHits.length>1?'s':''}: `;
+      const samples = d.csHits.slice(0, 2).map(h => `"${(h.body||"").slice(0, 80)}"`).join(" / ");
+      out += samples + `\n\n`;
+    });
+  }
+
+  // Robbery section
+  const topRob = contacts.filter(d => d.robHits.length >= 2).sort((a,b) => b.robHits.length - a.robHits.length).slice(0, 6);
+  if (topRob.length) {
+    out += `---\n\n## Robbery / lick-planning indicators\n\nNumbers discussing robberies, "licks," cash takedowns, or victim selection. Separate charging avenue under robbery/conspiracy statutes.\n\n`;
+    topRob.forEach(d => {
+      out += `**${d.number}** — ${d.robHits.length} rob hit${d.robHits.length>1?'s':''}: `;
+      const samples = d.robHits.slice(0, 2).map(h => `"${(h.body||"").slice(0, 80)}"`).join(" / ");
+      out += samples + `\n\n`;
+    });
+  }
+
+  out += `---\n\n## Geographic intelligence\n\nMost-shared locations (by # of distinct correspondents):\n\n`;
+  out += `| Street | Distinct contacts |\n|---|---:|\n`;
+  topStreets.forEach(s => out += `| ${s.s} | ${s.n} |\n`);
+  out += `\n`;
+
+  // Stash references
+  const trapRe = /\b(trap|bando|stash|spot|crib)\b/i;
+  const trapMentions = {};
+  for (const m of STATE.msgs) {
+    if (trapRe.test(m.body || "")) {
+      const c = otherParty(m);
+      if (STATE.excluded.has(c)) continue;
+      trapMentions[c] = (trapMentions[c]||0) + 1;
+    }
+  }
+  const topTrap = Object.entries(trapMentions).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  if (topTrap.length) {
+    out += `Numbers mentioning stash/trap/bando most often:\n\n`;
+    topTrap.forEach(([c,n]) => out += `- ${c} — ${n} reference${n>1?'s':''}\n`);
+    out += `\n`;
+  }
+
+  out += `---\n\n## Recommended next-step warrants\n\n`;
+  let rank = 1;
+  for (const d of [...t1, ...t2.slice(0, Math.max(0, 6 - t1.length))]) {
+    const cats = [];
+    if (d.drugHits.length) cats.push(`${d.drugHits.length} drug${d.explicitDrug?` (${d.explicitDrug} explicit)`:''}`);
+    if (d.gunHits.length)  cats.push(`${d.gunHits.length} gun${d.explicitGun?` (${d.explicitGun} explicit)`:''}`);
+    if (d.csHits.length)   cats.push(`${d.csHits.length} CS`);
+    if (d.robHits.length)  cats.push(`${d.robHits.length} rob`);
+    out += `${rank}. **${d.number}** — Title-III intercept. ${cats.join(", ")}; ${d.moneyRefs.length} numeric refs; ${d.locations.length} meet locations.\n`;
+    rank++;
+    if (rank > 6) break;
+  }
+  out += `\n*End of memo. Generated locally — verify all citations against the source CSV before affidavit submission. "E" marker indicates an explicit-term hit (e.g., "coke", "gun") weighted higher than coded slang.*\n`;
+  return out;
+}
+
+// ========= EVENTS =========
+$("#drop-zone").addEventListener("click", () => $("#file-input").click());
+$("#drop-zone").addEventListener("dragover", e => { e.preventDefault(); $("#drop-zone").classList.add("dragging"); });
+$("#drop-zone").addEventListener("dragleave", () => $("#drop-zone").classList.remove("dragging"));
+$("#drop-zone").addEventListener("drop", e => {
+  e.preventDefault();
+  $("#drop-zone").classList.remove("dragging");
+  if (e.dataTransfer.files && e.dataTransfer.files.length) { $("#convert-info").innerHTML = ""; loadFiles(e.dataTransfer.files); }
+});
+$("#file-input").addEventListener("change", e => {
+  if (e.target.files && e.target.files.length) { $("#convert-info").innerHTML = ""; loadFiles(e.target.files); }
+});
+
+// --- Non-standard CSV drop box: convert first, then reuse loadFiles() ---
+$("#drop-zone-convert").addEventListener("click", () => $("#file-input-convert").click());
+$("#drop-zone-convert").addEventListener("dragover", e => { e.preventDefault(); $("#drop-zone-convert").classList.add("dragging"); });
+$("#drop-zone-convert").addEventListener("dragleave", () => $("#drop-zone-convert").classList.remove("dragging"));
+$("#drop-zone-convert").addEventListener("drop", e => {
+  e.preventDefault();
+  $("#drop-zone-convert").classList.remove("dragging");
+  if (e.dataTransfer.files && e.dataTransfer.files.length) loadFilesWithConversion(e.dataTransfer.files);
+});
+$("#file-input-convert").addEventListener("change", e => {
+  if (e.target.files && e.target.files.length) loadFilesWithConversion(e.target.files);
+});
+
+// Read each file, convert if it isn't already standard, then hand the
+// now-standard text to the EXISTING loadFiles() pipeline unchanged.
+function loadFilesWithConversion(files) {
+  $("#load-error").innerHTML = "";
+  $("#convert-info").innerHTML = "";
+  const fileList = Array.from(files);
+  if (fileList.length === 0) return;
+
+  let pending = fileList.length;
+  const errors = [];
+  const notes = [];
+  const toLoad = [];
+
+  fileList.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const res = CSVConverter.convertToExpected(ev.target.result, file.name);
+        toLoad.push(new File([res.text], file.name, { type: "text/csv" }));
+        if (res.converted) notes.push({ name: file.name, res });
+      } catch (err) {
+        errors.push(`${file.name}: ${err.message}`);
+      } finally {
+        if (--pending === 0) finishConvertLoad(toLoad, notes, errors);
+      }
+    };
+    reader.onerror = () => {
+      errors.push(`${file.name}: read failure`);
+      if (--pending === 0) finishConvertLoad(toLoad, notes, errors);
+    };
+    reader.readAsText(file);
+  });
+}
+
+// Render the "what was converted" banner. Used by both the dedicated convert
+// box and the main box's auto-convert fallback.
+function renderConvertNotes(notes) {
+  if (!notes.length) return;
+  const blocks = notes.map(n => {
+    const items = n.res.differences.map(d => `<li>${escapeHtml(d)}</li>`).join("");
+    return `<span class="ci-title">Converted ${escapeHtml(n.name)} → subject ${escapeHtml(n.res.target)} · ${n.res.rows} rows</span><ul>${items}</ul>`;
+  }).join("<hr class='div'>");
+  $("#convert-info").innerHTML = `<div class="convert-info">${blocks}</div>`;
+}
+
+function finishConvertLoad(toLoad, notes, errors) {
+  renderConvertNotes(notes);
+  // loadFiles() clears #load-error itself, so convert errors go there after.
+  if (toLoad.length) loadFiles(toLoad);
+  if (errors.length) {
+    const prev = $("#load-error").innerHTML;
+    $("#load-error").innerHTML = `<div class="error">${errors.map(escapeHtml).join("<br>")}</div>` + prev;
+  }
+}
+
+function loadFiles(files) {
+  $("#load-error").innerHTML = "";
+  const fileList = Array.from(files);
+  if (fileList.length === 0) return;
+
+  let pending = fileList.length;
+  const errors = [];
+  const autoConverted = [];
+  const done = () => { if (--pending === 0) { renderConvertNotes(autoConverted); finishLoad(errors); } };
+
+  fileList.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        let det;
+        try {
+          // Original path — untouched for already-standard files.
+          det = detectAndParse(ev.target.result);
+        } catch (parseErr) {
+          // Additive fallback: if the analyzer can't read it, try converting a
+          // known alternate format, then re-parse. If there's nothing to
+          // convert, surface the original error; if conversion is attempted but
+          // fails, its (more specific) error propagates instead.
+          const res = CSVConverter.convertToExpected(ev.target.result, file.name);
+          if (!res.converted) throw parseErr;
+          det = detectAndParse(res.text);
+          autoConverted.push({ name: file.name, res });
+        }
+        if (det.kind === "bug") {
+          const b = det.data;
+          STATE.bugs[b.bugId] = {
+            bugId: b.bugId,
+            bugName: b.bugName,
+            exportDate: b.exportDate,
+            filename: file.name,
+            utterances: b.utterances,
+            analysis: null,
+          };
+          analyzeBug(b.bugId);
+        } else {
+          const parsed = det.data;
+          const id = parsed.target;   // use target number as subject ID
+          STATE.subjects[id] = {
+            id,
+            target: parsed.target,
+            exportDate: parsed.exportDate,
+            filename: file.name,
+            label: null,            // user can set a human-readable label later
+            msgs: parsed.msgs,
+            calls: parsed.calls,
+            dossier: {},
+          };
+          analyze(id);
+        }
+      } catch (err) {
+        errors.push(`${file.name}: ${err.message}`);
+      } finally {
+        done();
+      }
+    };
+    reader.onerror = () => {
+      errors.push(`${file.name}: read failure`);
+      done();
+    };
+    reader.readAsText(file);
+  });
+}
+
+function finishLoad(errors) {
+  if (errors.length) {
+    $("#load-error").innerHTML = `<div class="error">${errors.map(escapeHtml).join("<br>")}</div>`;
+  }
+  const ids = subjectIds();
+  const bIds = bugIds();
+  if (ids.length === 0 && bIds.length === 0) return;
+
+  if (ids.length > 0 && (!STATE.activeSubject || !STATE.subjects[STATE.activeSubject])) {
+    STATE.activeSubject = ids[0];
+  }
+  if (bIds.length > 0 && (!STATE.activeBug || !STATE.bugs[STATE.activeBug])) {
+    STATE.activeBug = bIds[0];
+  }
+  computeNetwork();
+  refreshHeader();
+  enableTabs();
+  // Land on the most useful tab for what was loaded
+  if (ids.length === 0 && bIds.length > 0) switchTab("bugs");
+  else if (ids.length > 1) switchTab("network");
+  else switchTab("overview");
+}
+
+function refreshHeader() {
+  const ids = subjectIds();
+  const bIds = bugIds();
+  if (ids.length === 0 && bIds.length === 0) {
+    $("#session-info").textContent = "No file loaded";
+    $("#subject-picker-wrap").style.display = "none";
+    return;
+  }
+  const totalPhone = ids.reduce((s, id) => s + STATE.subjects[id].msgs.length + STATE.subjects[id].calls.length, 0);
+  const totalBug = bIds.reduce((s, id) => s + STATE.bugs[id].utterances.length, 0);
+  const parts = [];
+  if (ids.length)  parts.push(`${ids.length} phone subject${ids.length>1?'s':''}`);
+  if (bIds.length) parts.push(`${bIds.length} bug${bIds.length>1?'s':''}`);
+  $("#session-info").innerHTML = `<span class="amber mono">${parts.join(" · ")}</span><br>${(totalPhone+totalBug).toLocaleString()} total records`;
+
+  // Subject picker (only shown if phone subjects exist)
+  if (ids.length) {
+    $("#subject-picker-wrap").style.display = "";
+    $("#subject-picker").innerHTML = ids.map(id => {
+      const s = STATE.subjects[id];
+      return `<option value="${escapeHtml(id)}" ${id === STATE.activeSubject ? "selected" : ""}>${escapeHtml(subjectLabel(id))} · ${s.msgs.length}m/${s.calls.length}c</option>`;
+    }).join("");
+  } else {
+    $("#subject-picker-wrap").style.display = "none";
+  }
+}
+
+// Tab clicks
+$$("nav.tabs button").forEach(b => b.onclick = () => { if (!b.disabled) switchTab(b.dataset.tab); });
+$$("[data-jump-tab]").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.jumpTab)));
+
+// Roster sort
+$("#roster-tbl thead").addEventListener("click", e => {
+  const th = e.target.closest("th");
+  if (!th || !th.dataset.sort) return;
+  if (STATE.sortCol === th.dataset.sort) STATE.sortDir = STATE.sortDir === "asc" ? "desc" : "asc";
+  else { STATE.sortCol = th.dataset.sort; STATE.sortDir = "desc"; }
+  renderRoster();
+});
+$("#roster-search").addEventListener("input", () => renderRoster());
+
+// Search tab
+$("#search-q").addEventListener("input", renderSearch);
+["search-regex", "search-msgs", "search-calls", "search-from", "search-to"].forEach(id =>
+  $("#" + id).addEventListener("change", renderSearch));
+$("#search-clear").onclick = () => {
+  $("#search-q").value = ""; $("#search-from").value = ""; $("#search-to").value = "";
+  $("#search-regex").checked = false; $("#search-msgs").checked = true; $("#search-calls").checked = true;
+  renderSearch();
+};
+$("#search-results").addEventListener("click", e => {
+  const el = e.target.closest(".who[data-number]");
+  if (!el) return;
+  const sid = el.dataset.sid;
+  if (sid && STATE.subjects[sid]) { STATE.activeSubject = sid; refreshHeader(); }
+  renderContact(el.dataset.number);
+  switchTab("contact");
+});
+
+// Subject picker change
+document.addEventListener("change", e => {
+  if (e.target && e.target.id === "subject-picker") {
+    STATE.activeSubject = e.target.value;
+    refreshHeader();
+    // Re-render the currently-active tab
+    const activeTab = document.querySelector("nav.tabs button.active")?.dataset.tab;
+    if (activeTab) switchTab(activeTab);
+  }
+});
+
+// ========= SESSION EXPORT / IMPORT =========
+function sessionMsg(msg, isError) {
+  const el = $("#session-msg");
+  if (!el) return;
+  el.innerHTML = `<div class="${isError ? 'error' : 'convert-info'}">${escapeHtml(msg)}</div>`;
+  if (!isError) { clearTimeout(sessionMsg._t); sessionMsg._t = setTimeout(() => { el.innerHTML = ""; }, 6000); }
+}
+
+// Serialize everything needed to reconstruct the working session. Derived data
+// (dossiers, bug analyses, network) is intentionally omitted and recomputed on
+// import, so the file stays as small as the raw logs allow.
+function exportSession() {
+  const subjects = Object.values(STATE.subjects).map(s => ({
+    id: s.id, target: s.target, exportDate: s.exportDate, filename: s.filename,
+    label: s.label, msgs: s.msgs, calls: s.calls,
+  }));
+  const bugs = Object.values(STATE.bugs).map(b => ({
+    bugId: b.bugId, bugName: b.bugName, exportDate: b.exportDate, filename: b.filename, utterances: b.utterances,
+  }));
+  if (!subjects.length && !bugs.length) { sessionMsg("Nothing loaded to export yet.", true); return; }
+  const data = {
+    _app: "D6-ANALYZER", _version: 1, _exported: new Date().toISOString(),
+    activeSubject: STATE.activeSubject, activeBug: STATE.activeBug,
+    sortCol: STATE.sortCol, sortDir: STATE.sortDir, hideExcluded: STATE.hideExcluded,
+    excluded: Array.from(STATE.excluded),
+    drugTerms: STATE.drugTerms, gunTerms: STATE.gunTerms, csTerms: STATE.csTerms, robTerms: STATE.robTerms,
+    subjects, bugs,
+  };
+  downloadText(JSON.stringify(data), `d6_session_${new Date().toISOString().slice(0, 10)}.json`, "application/json");
+  sessionMsg(`Exported ${subjects.length} subject(s) + ${bugs.length} bug(s).`);
+}
+
+// Re-run the post-load UI refresh (mirrors finishLoad's tail without the
+// file-error handling).
+function refreshAfterLoad() {
+  const ids = subjectIds(), bIds = bugIds();
+  if (!ids.length && !bIds.length) return;
+  if (ids.length && (!STATE.activeSubject || !STATE.subjects[STATE.activeSubject])) STATE.activeSubject = ids[0];
+  if (bIds.length && (!STATE.activeBug || !STATE.bugs[STATE.activeBug])) STATE.activeBug = bIds[0];
+  refreshHeader();
+  enableTabs();
+  if (!ids.length && bIds.length) switchTab("bugs");
+  else if (ids.length > 1) switchTab("network");
+  else switchTab("overview");
+}
+
+function importSession(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    let data;
+    try { data = JSON.parse(ev.target.result); }
+    catch { sessionMsg("That file isn't valid JSON.", true); return; }
+    if (!data || data._app !== "D6-ANALYZER" || !Array.isArray(data.subjects)) {
+      sessionMsg("This doesn't look like a D6 session file.", true); return;
+    }
+    try {
+      if (Array.isArray(data.drugTerms)) STATE.drugTerms = data.drugTerms;
+      if (Array.isArray(data.gunTerms))  STATE.gunTerms  = data.gunTerms;
+      if (Array.isArray(data.csTerms))   STATE.csTerms   = data.csTerms;
+      if (Array.isArray(data.robTerms))  STATE.robTerms  = data.robTerms;
+      if (Array.isArray(data.excluded))  STATE.excluded  = new Set(data.excluded);
+      if (typeof data.hideExcluded === "boolean") STATE.hideExcluded = data.hideExcluded;
+      if (data.sortCol) STATE.sortCol = data.sortCol;
+      if (data.sortDir) STATE.sortDir = data.sortDir;
+
+      let nS = 0, nB = 0;
+      for (const s of data.subjects) {
+        if (!s || !s.target) continue;
+        const id = s.id || s.target;
+        STATE.subjects[id] = {
+          id, target: s.target, exportDate: s.exportDate || null, filename: s.filename || null,
+          label: s.label || null,
+          msgs: Array.isArray(s.msgs) ? s.msgs : [],
+          calls: Array.isArray(s.calls) ? s.calls : [],
+          dossier: {},
+        };
+        nS++;
+      }
+      for (const b of (data.bugs || [])) {
+        if (!b || !b.bugId) continue;
+        STATE.bugs[b.bugId] = {
+          bugId: b.bugId, bugName: b.bugName || b.bugId, exportDate: b.exportDate || null,
+          filename: b.filename || null,
+          utterances: Array.isArray(b.utterances) ? b.utterances : [],
+          analysis: null,
+        };
+        nB++;
+      }
+      if (data.activeSubject && STATE.subjects[data.activeSubject]) STATE.activeSubject = data.activeSubject;
+      if (data.activeBug && STATE.bugs[data.activeBug]) STATE.activeBug = data.activeBug;
+
+      reanalyzeAll();
+      refreshAfterLoad();
+      sessionMsg(`Imported ${nS} subject(s) + ${nB} bug(s).`);
+    } catch (err) {
+      sessionMsg("Import failed: " + err.message, true);
+    }
+  };
+  reader.onerror = () => sessionMsg("Could not read the file.", true);
+  reader.readAsText(file);
+}
+
+$("#export-session").onclick = exportSession;
+$("#import-session").addEventListener("change", e => {
+  if (e.target.files && e.target.files[0]) importSession(e.target.files[0]);
+  e.target.value = "";  // allow re-importing the same file
+});
+
+// Mutual table live search
+document.addEventListener("input", e => {
+  if (e.target && e.target.id === "mutual-search") {
+    renderNetwork();
+  }
+});
+
+// Click on roster row → contact detail (single subject)
+// Click on mutual-contacts row → cross-subject view (aggregated across subjects)
+document.addEventListener("click", e => {
+  const tr = e.target.closest("tr[data-number]");
+  if (tr) {
+    if (tr.closest("#mutual-tbl")) {
+      renderCrossSubjectContact(tr.dataset.number);
+    } else {
+      renderContact(tr.dataset.number);
+    }
+    switchTab("contact");
+  }
+});
+
+// Glossary add
+function showGlossError(msg) {
+  const el = $("#gloss-error");
+  if (!el) return;
+  el.innerHTML = `<div class="error">${escapeHtml(msg)}</div>`;
+  clearTimeout(showGlossError._t);
+  showGlossError._t = setTimeout(() => { el.innerHTML = ""; }, 6000);
+}
+// Add a term after validating it compiles — an invalid pattern is rejected
+// with a message instead of throwing through reanalyzeAll() and blanking the UI.
+function addTerm(arr, inputSel) {
+  const raw = $(inputSel).value;
+  const v = smartTerm(raw);
+  if (!v) return;
+  if (!isValidRegexTerm(v)) { showGlossError(`Not added — "${raw.trim()}" is not a valid pattern (unbalanced brackets/parentheses?).`); return; }
+  arr.push(v);
+  $(inputSel).value = "";
+  $("#gloss-error").innerHTML = "";
+  reanalyzeAll();
+  renderGlossary();
+}
+$("#add-drug-btn").onclick = () => addTerm(STATE.drugTerms, "#add-drug");
+$("#add-gun-btn").onclick  = () => addTerm(STATE.gunTerms,  "#add-gun");
+$("#add-cs-btn").onclick   = () => addTerm(STATE.csTerms,   "#add-cs");
+$("#add-rob-btn").onclick  = () => addTerm(STATE.robTerms,  "#add-rob");
+$("#add-drug").addEventListener("keydown", e => { if (e.key === "Enter") $("#add-drug-btn").click(); });
+$("#add-gun").addEventListener("keydown", e => { if (e.key === "Enter") $("#add-gun-btn").click(); });
+$("#add-cs").addEventListener("keydown", e => { if (e.key === "Enter") $("#add-cs-btn").click(); });
+$("#add-rob").addEventListener("keydown", e => { if (e.key === "Enter") $("#add-rob-btn").click(); });
+
+// Memo buttons
+$("#copy-memo").onclick = async () => {
+  try {
+    await navigator.clipboard.writeText(generateMemo());
+    $("#copy-memo").textContent = "Copied ✓";
+    setTimeout(() => $("#copy-memo").textContent = "Copy markdown", 1500);
+  } catch { alert("Could not copy. Select the text manually."); }
+};
+$("#download-memo").onclick = () => {
+  const blob = new Blob([generateMemo()], { type: "text/markdown" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `intel_memo_${STATE.target}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+$("#regen-memo").onclick = () => renderMemo();
+
+// === ESW Exclusion List events ===
+$("#apply-excluded").onclick = () => {
+  const text = $("#excluded-input").value;
+  const nums = normalizeExclusionInput(text);
+  nums.forEach(n => STATE.excluded.add(n));
+  $("#excluded-input").value = "";
+  renderExcluded();
+};
+$("#excluded-input").addEventListener("keydown", e => {
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) $("#apply-excluded").click();
+});
+$("#clear-excluded").onclick = () => {
+  if (STATE.excluded.size === 0) return;
+  if (confirm(`Clear all ${STATE.excluded.size} number${STATE.excluded.size>1?'s':''} from the exclusion list?`)) {
+    STATE.excluded.clear();
+    renderExcluded();
+  }
+};
+$("#hide-excluded-toggle").addEventListener("change", e => {
+  STATE.hideExcluded = e.target.checked;
+});
+
+</script>
+</body>
+</html>
